@@ -9,37 +9,59 @@
         :root { --accent: #e50914; --bg: #0b0b0b; --card: #161616; --text: #ffffff; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         
-        header { text-align: center; margin-bottom: 30px; }
-        #barreRecherche { padding: 12px 20px; width: 100%; max-width: 450px; border-radius: 25px; border: 1px solid #333; background: #1a1a1a; color: white; outline: none; }
-        #barreRecherche:focus { border-color: var(--accent); }
+        header { text-align: center; margin-bottom: 20px; }
+        h1 { color: var(--accent); letter-spacing: 2px; }
 
-        .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
+        .controles { display: flex; flex-direction: column; align-items: center; gap: 15px; margin-bottom: 30px; }
+        
+        #barreRecherche { padding: 12px 20px; width: 100%; max-width: 450px; border-radius: 25px; border: 1px solid #333; background: #1a1a1a; color: white; outline: none; }
+        
+        .tri-container { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+        select { padding: 8px 15px; border-radius: 20px; background: #222; color: white; border: 1px solid #444; cursor: pointer; outline: none; }
+        select:hover { border-color: var(--accent); }
+
+        .grille { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; max-width: 1200px; margin: 0 auto; }
         
         .carte { background: var(--card); border-radius: 12px; cursor: pointer; transition: 0.3s; border: 1px solid #222; overflow: hidden; position: relative; }
         .carte:hover { transform: translateY(-5px); border-color: var(--accent); }
-        .carte img { width: 100%; height: 280px; object-fit: cover; }
+        .carte img { width: 100%; height: 260px; object-fit: cover; }
         
-        .infos-mini { padding: 12px; text-align: center; font-weight: bold; font-size: 0.9em; }
-        .score-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.85); color: #ffcc00; padding: 4px 8px; border-radius: 8px; font-weight: bold; }
+        .infos-mini { padding: 10px; text-align: center; font-weight: bold; font-size: 0.85em; }
+        .score-badge { position: absolute; top: 10px; right: 10px; background: rgba(0,0,0,0.85); color: #ffcc00; padding: 4px 8px; border-radius: 8px; font-weight: bold; font-size: 0.8em; }
 
-        /* Fenêtre Détails (Modale) */
+        /* Modale */
         #modale { display: none; position: fixed; z-index: 100; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); backdrop-filter: blur(8px); }
-        .modale-contenu { background: #181818; margin: 5% auto; padding: 30px; border-radius: 20px; max-width: 750px; position: relative; display: flex; gap: 25px; border: 1px solid #333; }
+        .modale-contenu { background: #181818; margin: 5% auto; padding: 30px; border-radius: 20px; max-width: 700px; position: relative; display: flex; gap: 25px; border: 1px solid #333; }
         .close { position: absolute; right: 20px; top: 15px; font-size: 30px; cursor: pointer; color: #666; }
         
-        .badge { background: #333; padding: 5px 12px; border-radius: 6px; font-size: 0.8em; text-transform: uppercase; letter-spacing: 0.5px; }
+        .badge { background: #333; padding: 5px 12px; border-radius: 6px; font-size: 0.75em; text-transform: uppercase; }
         .censure-tag { color: #ff4444; border: 1px solid #ff4444; }
-        .etat-tag { color: #44ff44; border: 1px solid #44ff44; }
 
-        @media (max-width: 600px) { .modale-contenu { flex-direction: column; margin: 0; height: 100%; overflow-y: auto; } }
+        @media (max-width: 600px) { 
+            .modale-contenu { flex-direction: column; margin: 0; height: 100%; overflow-y: auto; border-radius: 0; } 
+            .modale-contenu img { width: 100% !important; }
+        }
     </style>
 </head>
 <body>
 
 <header>
     <h1>ARCHIVE ANIMES</h1>
-    <div style="margin-bottom: 20px;">
-        <input type="text" id="barreRecherche" onkeyup="filtrer()" placeholder="Rechercher dans mes 330 animes...">
+    <div class="controles">
+        <input type="text" id="barreRecherche" onkeyup="filtrer()" placeholder="Rechercher un titre...">
+        
+        <div class="tri-container">
+            <label for="triSelect">Trier par :</label>
+            <select id="triSelect" onchange="trierAnimes()">
+                <option value="nom">Nom (A-Z)</option>
+                <option value="popularite">Popularité</option>
+                <option value="score">Meilleure Note</option>
+                <option value="sortie">Date de Sortie</option>
+                <option value="nombre episodes">Nombre d'épisodes</option>
+                <option value="censure">Censure</option>
+                <option value="etat">État</option>
+            </select>
+        </div>
     </div>
 </header>
 
@@ -48,94 +70,113 @@
 <div id="modale">
     <div class="modale-contenu">
         <span class="close" onclick="fermer()">&times;</span>
-        <img id="modale-img" style="width: 240px; border-radius: 12px; object-fit: cover;">
+        <img id="modale-img" style="width: 220px; border-radius: 12px; object-fit: cover;">
         <div>
             <h2 id="modale-titre" style="margin-top:0; color: var(--accent);"></h2>
             <div style="display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 15px;">
                 <span id="modale-sortie" class="badge"></span>
                 <span id="modale-ep" class="badge"></span>
-                <span id="modale-etat" class="badge etat-tag"></span>
+                <span id="modale-etat" class="badge"></span>
                 <span id="modale-censure" class="badge"></span>
             </div>
-            <p id="modale-desc" style="line-height: 1.6; color: #ddd; font-size: 0.95em;"></p>
-            <div style="margin-top: 20px; padding-top: 15px; border-top: 1px solid #333;">
-                <p><b>Note :</b> <span id="modale-score" style="color:#ffcc00;"></span> / 10</p>
-                <p style="font-size: 0.85em; color: #777;">Popularité : #<span id="modale-pop"></span></p>
+            <p id="modale-desc" style="line-height: 1.5; color: #ccc; font-size: 0.9em;"></p>
+            <div style="margin-top: 15px; padding-top: 10px; border-top: 1px solid #333;">
+                <p>Note : <span id="modale-score" style="color:#ffcc00; font-weight:bold;"></span>/10</p>
+                <p style="font-size: 0.8em; color: #777;">Rang de popularité : #<span id="modale-pop"></span></p>
             </div>
         </div>
     </div>
 </div>
 
 <script>
-  let listAnimes = [];
+    let listAnimes = [];
 
     async function searchPoster(title) {
         try {
-            // J'ai ajouté "&type=tv" pour éviter les films ou les OAV qui polluent les résultats
             const r = await fetch(`https://kitsu.io/api/edge/anime?filter[text]=${encodeURIComponent(title)}&page[limit]=1`);
             const d = await r.json();
             return d.data[0].attributes.posterImage.large;
         } catch(e) { return 'https://via.placeholder.com/225x320?text=Pas+d+image'; }
     }
 
-    Papa.parse("animes.csv", {
-        download: true, header: true, skipEmptyLines: true,
-        complete: async function(res) {
-            listAnimes = res.data;
-            const target = document.getElementById("conteneur");
-            target.innerHTML = "";
+    // Fonction pour afficher les cartes
+    async function afficherCartes(data) {
+        const target = document.getElementById("conteneur");
+        target.innerHTML = "";
 
-            for (let a of listAnimes) {
-                if (!a.nom) continue;
-                let card = document.createElement("div");
-                card.className = "carte";
-                let tempId = "img-" + Math.random().toString(36).substr(2, 7);
-                
-                card.innerHTML = `
-                    <div class="score-badge">★ ${a.score || '?'}</div>
-                    <img src="https://via.placeholder.com/225x320?text=..." id="${tempId}">
-                    <div class="infos-mini">${a.nom}</div>
-                `;
-                card.onclick = () => showDetails(a, document.getElementById(tempId).src);
-                target.appendChild(card);
-                
+        for (let a of data) {
+            if (!a.nom) continue;
+            let card = document.createElement("div");
+            card.className = "carte";
+            let tempId = "img-" + Math.random().toString(36).substr(2, 7);
+            
+            card.innerHTML = `
+                <div class="score-badge">★ ${a.score || '?'}</div>
+                <img src="https://via.placeholder.com/225x320?text=..." id="${tempId}">
+                <div class="infos-mini">${a.nom}</div>
+            `;
+            
+            card.onclick = () => showDetails(a, document.getElementById(tempId).src);
+            target.appendChild(card);
+            
+            // Image : URL manuelle ou Auto
+            if (a.image_url && a.image_url.trim() !== "") {
+                document.getElementById(tempId).src = a.image_url;
+            } else {
                 searchPoster(a.nom).then(url => {
                     const img = document.getElementById(tempId);
                     if(img) img.src = url;
                 });
-                await new Promise(wait => setTimeout(wait, 150));
             }
         }
+    }
+
+    Papa.parse("animes.csv", {
+        download: true, header: true, skipEmptyLines: true,
+        complete: async function(res) {
+            listAnimes = res.data;
+            trierAnimes(); // Premier affichage avec tri par défaut (Nom)
+        }
     });
+
+    function trierAnimes() {
+        const critere = document.getElementById("triSelect").value;
+        
+        listAnimes.sort((a, b) => {
+            let valA = a[critere] || "";
+            let valB = b[critere] || "";
+
+            // Tri numérique pour score, popularité et épisodes
+            if (["score", "popularite", "nombre episodes", "sortie"].includes(critere)) {
+                return parseFloat(valB) - parseFloat(valA); // Du plus grand au plus petit
+            }
+            // Tri alphabétique pour le reste
+            return valA.toString().localeCompare(valB.toString());
+        });
+
+        afficherCartes(listAnimes);
+    }
 
     function showDetails(a, img) {
         document.getElementById("modale").style.display = "block";
         document.getElementById("modale-titre").innerText = a.nom;
         document.getElementById("modale-img").src = img;
-        document.getElementById("modale-desc").innerText = a.description || "Pas de description renseignée.";
-        document.getElementById("modale-sortie").innerText = a.sortie || "Date ?";
+        document.getElementById("modale-desc").innerText = a.description || "Aucune description.";
+        document.getElementById("modale-sortie").innerText = a.sortie || "?";
         document.getElementById("modale-ep").innerText = (a["nombre episodes"] || "?") + " EPS";
-        document.getElementById("modale-etat").innerText = a.etat || "Statut ?";
+        document.getElementById("modale-etat").innerText = a.etat || "?";
         document.getElementById("modale-score").innerText = a.score || "?";
-        document.getElementById("modale-pop").innerText = a.popularite || "N/A";
+        document.getElementById("modale-pop").innerText = a.popularite || "?";
         
         const cns = document.getElementById("modale-censure");
         cns.innerText = "Censure : " + (a.censure || "Non");
         cns.className = (a.censure && a.censure.toLowerCase().includes("oui")) ? "badge censure-tag" : "badge";
-
-        // ASTUCE RETOUR : On ajoute un état dans l'historique pour que "Précédent" ferme la modale
+        
         window.history.pushState({modaleOuverte: true}, "");
     }
 
-    function fermer() { 
-        document.getElementById("modale").style.display = "none"; 
-    }
-
-    // Si l'utilisateur clique sur le bouton "Retour" du téléphone/navigateur
-    window.onpopstate = function(event) {
-        fermer();
-    };
-
+    function fermer() { document.getElementById("modale").style.display = "none"; }
+    window.onpopstate = () => fermer();
     window.onclick = (e) => { if(e.target == document.getElementById("modale")) { fermer(); history.back(); } }
 
     function filtrer() {
@@ -144,3 +185,6 @@
             c.style.display = c.innerText.toLowerCase().includes(val) ? "" : "none";
         });
     }
+</script>
+</body>
+</html>
