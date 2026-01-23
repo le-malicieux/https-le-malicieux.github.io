@@ -3,50 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mon Catalogue Privé</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <title>Ma Collection d'Animes</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
     <style>
-        body { background-color: #0b0b0b; color: #ffffff; font-family: sans-serif; }
-        .navbar { background-color: #000; border-bottom: 1px solid #222; }
-        .card-media { 
-            background: #161616; 
-            border: none; 
-            transition: 0.3s; 
-            border-radius: 8px;
-            overflow: hidden;
-            text-decoration: none;
-            color: white;
-            display: block;
+        :root { --main-red: #e50914; --bg-dark: #0f0f0f; --card-bg: #1e1e1e; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-dark); color: white; margin: 0; padding: 20px; }
+        
+        header { text-align: center; margin-bottom: 40px; }
+        h1 { color: var(--main-red); font-size: 2.5em; margin-bottom: 20px; }
+
+        /* Style de la barre de recherche */
+        .search-container { margin-bottom: 30px; }
+        #barreRecherche { 
+            padding: 12px 20px; width: 100%; max-width: 400px; 
+            border-radius: 25px; border: 1px solid #333; 
+            background: #252525; color: white; outline: none;
         }
-        .card-media:hover { transform: translateY(-5px); background: #252525; color: #ff4757; }
-        .card-media img { height: 280px; object-fit: cover; width: 100%; }
-        .card-body { padding: 10px; font-size: 0.9rem; }
+
+        /* Grille des cartes */
+        .grille { 
+            display: grid; 
+            grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); 
+            gap: 25px; max-width: 1200px; margin: 0 auto;
+        }
+
+        /* Style d'une carte d'anime */
+        .carte { 
+            background: var(--card-bg); border-radius: 12px; 
+            overflow: hidden; transition: 0.3s; border: 1px solid #333;
+            display: flex; flex-direction: column;
+        }
+        .carte:hover { transform: translateY(-8px); border-color: var(--main-red); }
+        
+        .img-container { width: 100%; height: 320px; background: #252525; }
+        .carte img { width: 100%; height: 100%; object-fit: cover; }
+        
+        .infos { padding: 15px; flex-grow: 1; }
+        .infos h3 { margin: 0; font-size: 1.1em; height: 2.4em; overflow: hidden; }
+        .meta { margin-top: 10px; font-size: 0.9em; display: flex; justify-content: space-between; color: #aaa; }
+        .note { color: #ffcc00; font-weight: bold; }
+        .desc { font-size: 0.8em; color: #888; margin-top: 10px; line-height: 1.4; }
     </style>
 </head>
 <body>
 
-<nav class="navbar navbar-dark mb-4">
-    <div class="container">
-        <span class="navbar-brand fw-bold">MON CATALOGUE</span>
-    </div>
-</nav>
-
-<div class="container">
-    <h2 class="mb-4" style="color: #ff4757;">Nouveautés</h2>
-    
-    <div class="row g-3">
-        <div class="col-6 col-md-3 col-lg-2">
-            <a href="page-detail-1.html" class="card-media">
-                <img src="https://via.placeholder.com/200x280" alt="Titre">
-                <div class="card-body">
-                    <div class="fw-bold text-truncate">Titre de l'œuvre</div>
-                    <small class="text-muted">Épisode 01</small>
-                </div>
-            </a>
+    <header>
+        <h1>My Anime List</h1>
+        <div class="search-container">
+            <input type="text" id="barreRecherche" placeholder="Rechercher un titre..." onkeyup="filtrerAnimes()">
         </div>
-        
-        </div>
-</div>
+    </header>
 
+    <div id="conteneur" class="grille">Chargement des 330 animes...</div>
+
+    <script>
+        // FONCTION 1 : Trouver l'image sur le Web (Kitsu API)
+        async function getPoster(nom) {
+            try {
+                const res = await fetch(`https://kitsu.io/api/edge/anime?filter[text]=${encodeURIComponent(nom)}&page[limit]=1`);
+                const data = await res.json();
+                return data.data[0].attributes.posterImage.large;
+            } catch (e) { return 'https://via.placeholder.com/225x320?text=Pas+d+image'; }
+        }
+
+        // FONCTION 2 : Lire ton Excel et créer les cartes
+        Papa.parse("animes.csv", {
+            download: true,
+            header: true,
+            complete: async function(results) {
+                const conteneur = document.getElementById("conteneur");
+                conteneur.innerHTML = ""; 
+
+                for (let anime of results.data) {
+                    if (anime.nom) {
+                        const card = document.createElement("div");
+                        card.className = "carte";
+                        const cardId = "img-" + Math.random().toString(36).substr(2, 9);
+                        
+                        card.innerHTML = `
+                            <div class="img-container">
+                                <img src="https://via.placeholder.com/225x320?text=Chargement..." id="${cardId}">
+                            </div>
+                            <div class="infos">
+                                <h3>${anime.nom}</h3>
+                                <div class="meta">
+                                    <span class="note">★ ${anime.note}</span>
+                                    <span>${anime.annee}</span>
+                                </div>
+                                <div class="meta"><span>${anime.episodes} épisodes</span></div>
+                                <p class="desc">${anime.description ? anime.description.substring(0, 80) + '...' : ''}</p>
+                            </div>
+                        `;
+                        conteneur.appendChild(card);
+
+                        // On charge l'image après
+                        getPoster(anime.nom).then(url => {
+                            document.getElementById(cardId).src = url;
+                        });
+                        
+                        // Petite pause pour ne pas bloquer le navigateur
+                        await new Promise(r => setTimeout(r, 150));
+                    }
+                }
+            }
+        });
+
+        // FONCTION 3 : La barre de recherche
+        function filtrerAnimes() {
+            let input = document.getElementById('barreRecherche').value.toLowerCase();
+            let cartes = document.getElementsByClassName('carte');
+            for (let i = 0; i < cartes.length; i++) {
+                let titre = cartes[i].getElementsByTagName('h3')[0].innerText.toLowerCase();
+                cartes[i].style.display = titre.includes(input) ? "" : "none";
+            }
+        }
+    </script>
 </body>
 </html>
