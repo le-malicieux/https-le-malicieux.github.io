@@ -8,14 +8,12 @@
         :root { --primary: #ff4757; --bg: #0f0f0f; --card-bg: #1a1a1a; --text: #eee; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         
-        /* Barre de contrôle */
         .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 30px; position: sticky; top: 10px; z-index: 100; background: rgba(15,15,15,0.95); padding: 15px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         input, select, button { padding: 10px 15px; border-radius: 6px; border: 1px solid #333; background: #222; color: white; outline: none; cursor: pointer; }
         input:focus { border-color: var(--primary); }
         button { background: var(--primary); border: none; font-weight: bold; }
         button:hover { opacity: 0.9; transform: scale(1.05); }
 
-        /* Grille */
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
         .card { background: var(--card-bg); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; border: 1px solid #333; }
         .card:hover { transform: translateY(-5px); border-color: var(--primary); }
@@ -24,7 +22,6 @@
         .card-title { font-weight: bold; font-size: 0.9em; height: 2.4em; overflow: hidden; display: flex; align-items: center; justify-content: center; line-height: 1.2; }
         .card-score { color: #ffa502; font-size: 0.85em; margin-top: 5px; font-weight: bold; }
 
-        /* Modale */
         .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); overflow-y: auto; }
         .modal-content { background: #1e1e1e; margin: 5% auto; padding: 25px; width: 90%; max-width: 800px; border-radius: 15px; position: relative; display: flex; flex-wrap: wrap; gap: 25px; border: 1px solid #444; }
         .close { position: absolute; right: 20px; top: 10px; font-size: 30px; cursor: pointer; color: var(--primary); }
@@ -73,15 +70,11 @@
             try {
                 const response = await fetch('animes.csv');
                 const rawData = await response.text();
-                
-                // Nettoyage des lignes pour éviter les sauts de ligne dans les descriptions
                 const rows = rawData.split(/\r?\n(?=(?:(?:[^"]*"){2})*[^"]*$)/).filter(l => l.trim() !== "");
                 
                 allAnimes = rows.slice(1).map(line => {
                     const c = line.split(';');
-                    // Nettoyage des guillemets éventuels
                     const clean = (str) => (str || "").replace(/^"|"$/g, "").trim();
-                    
                     return {
                         nom: clean(c[0]),
                         popularite: clean(c[1]),
@@ -93,8 +86,7 @@
                         desc: clean(c[7]) || "Aucune description disponible.",
                         img: clean(c[8])
                     };
-                }).filter(a => a.nom.length > 2); // Évite les lignes buggées
-
+                }).filter(a => a.nom.length > 2);
                 displayAnimes(allAnimes);
             } catch (err) { console.error("Erreur:", err); }
         }
@@ -106,8 +98,12 @@
                 const card = document.createElement('div');
                 card.className = 'card';
                 card.onclick = () => openModal(anime);
+                
+                // --- CORRECTIF ICI : Encodage de l'URL pour gérer les espaces/parenthèses ---
+                const safeImgPath = encodeURI(anime.img);
+
                 card.innerHTML = `
-                    <img src="img/${anime.img}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x260?text=Image+Introuvable'">
+                    <img src="img/${safeImgPath}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x260?text=Image+Introuvable'">
                     <div class="card-info">
                         <div class="card-title">${anime.nom}</div>
                         <div class="card-score">⭐ ${anime.score > 0 ? anime.score + '/10' : 'N/A'}</div>
@@ -119,7 +115,8 @@
 
         function openModal(a) {
             document.getElementById('modal-title').innerText = a.nom;
-            document.getElementById('modal-img').innerHTML = `<img src="img/${a.img}" onerror="this.src='https://via.placeholder.com/400x600?text=Pas+d+image'">`;
+            const safeImgPath = encodeURI(a.img);
+            document.getElementById('modal-img').innerHTML = `<img src="img/${safeImgPath}" onerror="this.src='https://via.placeholder.com/400x600?text=Pas+d+image'">`;
             document.getElementById('modal-desc').innerText = a.desc;
             document.getElementById('modal-tags').innerHTML = `
                 <span class="tag">🏆 Pop: ${a.popularite}</span>
