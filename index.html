@@ -67,18 +67,17 @@
 </div>
 
 <script>
-    let listAnimes = [];
+  let listAnimes = [];
 
-    // Récupération auto de l'affiche via Kitsu API
     async function searchPoster(title) {
         try {
+            // J'ai ajouté "&type=tv" pour éviter les films ou les OAV qui polluent les résultats
             const r = await fetch(`https://kitsu.io/api/edge/anime?filter[text]=${encodeURIComponent(title)}&page[limit]=1`);
             const d = await r.json();
             return d.data[0].attributes.posterImage.large;
         } catch(e) { return 'https://via.placeholder.com/225x320?text=Pas+d+image'; }
     }
 
-    // Lecture du CSV
     Papa.parse("animes.csv", {
         download: true, header: true, skipEmptyLines: true,
         complete: async function(res) {
@@ -94,18 +93,17 @@
                 
                 card.innerHTML = `
                     <div class="score-badge">★ ${a.score || '?'}</div>
-                    <img src="https://via.placeholder.com/225x320?text=Chargement..." id="${tempId}">
+                    <img src="https://via.placeholder.com/225x320?text=..." id="${tempId}">
                     <div class="infos-mini">${a.nom}</div>
                 `;
                 card.onclick = () => showDetails(a, document.getElementById(tempId).src);
                 target.appendChild(card);
                 
-                // Charger l'image en décalé
                 searchPoster(a.nom).then(url => {
                     const img = document.getElementById(tempId);
                     if(img) img.src = url;
                 });
-                await new Promise(wait => setTimeout(wait, 200)); // Fluidité
+                await new Promise(wait => setTimeout(wait, 150));
             }
         }
     });
@@ -124,10 +122,21 @@
         const cns = document.getElementById("modale-censure");
         cns.innerText = "Censure : " + (a.censure || "Non");
         cns.className = (a.censure && a.censure.toLowerCase().includes("oui")) ? "badge censure-tag" : "badge";
+
+        // ASTUCE RETOUR : On ajoute un état dans l'historique pour que "Précédent" ferme la modale
+        window.history.pushState({modaleOuverte: true}, "");
     }
 
-    function fermer() { document.getElementById("modale").style.display = "none"; }
-    window.onclick = (e) => { if(e.target == document.getElementById("modale")) fermer(); }
+    function fermer() { 
+        document.getElementById("modale").style.display = "none"; 
+    }
+
+    // Si l'utilisateur clique sur le bouton "Retour" du téléphone/navigateur
+    window.onpopstate = function(event) {
+        fermer();
+    };
+
+    window.onclick = (e) => { if(e.target == document.getElementById("modale")) { fermer(); history.back(); } }
 
     function filtrer() {
         let val = document.getElementById("barreRecherche").value.toLowerCase();
@@ -135,6 +144,3 @@
             c.style.display = c.innerText.toLowerCase().includes(val) ? "" : "none";
         });
     }
-</script>
-</body>
-</html>
