@@ -5,21 +5,20 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mon Catalogue Anime</title>
     <style>
-        body { font-family: 'Segoe UI', sans-serif; background-color: #121212; color: white; margin: 0; padding: 20px; }
-        h1 { text-align: center; color: #ff4757; text-transform: uppercase; letter-spacing: 2px; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; padding: 20px; }
-        .card { background: #1e1e1e; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.5); transition: 0.3s; border: 1px solid #333; }
-        .card:hover { transform: translateY(-5px); border-color: #ff4757; }
-        .card img { width: 100%; height: 280px; object-fit: cover; display: block; background: #222; }
-        .content { padding: 12px; text-align: center; }
-        .title { font-weight: bold; font-size: 0.95em; margin-bottom: 5px; color: #eee; height: 2.4em; overflow: hidden; }
-        .score { color: #ffa502; font-size: 0.85em; font-weight: bold; }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; background-color: #121212; color: white; margin: 0; padding: 20px; }
+        h1 { text-align: center; color: #ff4757; text-transform: uppercase; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 20px; padding: 20px; }
+        .card { background: #1e1e1e; border-radius: 10px; overflow: hidden; box-shadow: 0 4px 10px rgba(0,0,0,0.5); border: 1px solid #333; text-align: center; }
+        .card img { width: 100%; height: 300px; object-fit: cover; background: #222; }
+        .content { padding: 15px; }
+        .title { font-weight: bold; font-size: 1em; color: #fff; margin-bottom: 8px; min-height: 2.4em; display: flex; align-items: center; justify-content: center; }
+        .score { color: #ffa502; font-weight: bold; font-size: 0.9em; }
         .meta { color: #888; font-size: 0.8em; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-    <h1>Ma Collection</h1>
+    <h1>Ma Collection d'Animes</h1>
     <div class="grid" id="anime-container"></div>
 
     <script>
@@ -28,28 +27,27 @@
                 const response = await fetch('animes.csv');
                 const data = await response.text();
                 
-                // On sépare par ligne mais on nettoie les espaces vides
+                // On sépare les lignes
                 const lines = data.split(/\r?\n/).filter(line => line.trim() !== "");
                 const container = document.getElementById('anime-container');
 
-                // On commence à 1 pour sauter l'en-tête
+                // On saute la ligne de titre (i=1)
                 for (let i = 1; i < lines.length; i++) {
                     const line = lines[i];
                     
-                    // Cette Regex magique sépare par virgule SANS couper l'intérieur des guillemets
-                    const cols = line.match(/(".*?"|[^",\s]+)(?=\s*,|\s*$)/g);
+                    // ON COUPE PAR POINT-VIRGULE (puisque c'est ton format)
+                    const cols = line.split(';');
 
-                    if (cols && cols.length >= 9) {
-                        const title = cols[0].replace(/"/g, ""); 
-                        const score = cols[2].replace(/"/g, "");
-                        const episodes = cols[4].replace(/"/g, "");
-                        // L'image est en colonne 9 (index 8)
-                        const imageFileName = cols[8].replace(/"/g, "").trim();
+                    if (cols.length >= 9) {
+                        const title = cols[0];
+                        const score = cols[2];
+                        const episodes = cols[4];
+                        const imageFileName = cols[8].trim(); // On récupère le nom de l'image
 
                         const card = document.createElement('div');
                         card.className = 'card';
                         card.innerHTML = `
-                            <img src="img/${imageFileName}" alt="${title}" onerror="this.src='https://via.placeholder.com/200x280?text=Image+Manquante'">
+                            <img src="img/${imageFileName}" alt="${title}" onerror="this.src='https://via.placeholder.com/220x300?text=Image+Introuvable'">
                             <div class="content">
                                 <div class="title">${title}</div>
                                 <div class="score">⭐ ${score}/10</div>
@@ -60,7 +58,7 @@
                     }
                 }
             } catch (e) {
-                console.error("Erreur de chargement:", e);
+                console.error("Erreur fatale :", e);
             }
         }
         loadAnimes();
