@@ -19,7 +19,6 @@
         body.light-mode { --bg: #EAEAEA; --card-bg: #FFFFFF; --text: #2d3436; --header-bg: rgba(234, 234, 234, 0.95); }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; display: flex; flex-direction: column; min-height: 100vh; }
         
-        /* HEADER LOGO GAUCHE */
         .header-main { display: flex; align-items: center; gap: 20px; max-width: 1200px; margin: 0 auto 20px auto; width: 100%; }
         .site-logo { width: 120px; height: 120px; object-fit: cover; border-radius: 15px; border: 2px solid var(--primary); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
         .header-text h1 { margin: 0; color: var(--primary); font-size: 2.2em; }
@@ -94,11 +93,11 @@
             try {
                 const response = await fetch('animes.csv');
                 const rawData = await response.text();
+                // On filtre les lignes trop courtes pour éviter les "glitchs" de cartes vides
                 const rows = rawData.split(/\r?\n/).filter(l => l.trim().length > 5);
                 
                 allAnimes = rows.slice(1).map(line => {
                     const c = line.split(';');
-                    // SECURITÉ : Si la colonne Nom est vide, on ignore la ligne
                     if (!c[0] || c[0].trim() === "" || c.length < 7) return null;
 
                     return {
@@ -117,51 +116,4 @@
             list.forEach(a => {
                 const card = document.createElement('a');
                 card.className = 'card';
-                card.href = `video.html?name=${encodeURIComponent(a.nom)}`;
-                card.innerHTML = `
-                    <img src="img/${encodeURI(a.img)}" onerror="this.src='https://via.placeholder.com/220x280?text=Image+Introuvable'">
-                    <div class="card-info">
-                        <div class="card-title">${a.nom}</div>
-                        <div class="info-line"><span class="label">Pop :</span> <span>${a.popularite}</span></div>
-                        <div class="info-line"><span class="label">Score :</span> <span>⭐ ${a.score}/10</span></div>
-                        <div class="info-line"><span class="label">Année :</span> <span>${a.sortie}</span></div>
-                        <div class="info-line"><span class="label">Eps :</span> <span>${a.episodes}</span></div>
-                        <div class="info-line"><span class="label">Censure :</span> <span>${a.censure}</span></div>
-                        <div class="info-line"><span class="label">État :</span> <span>${a.etat}</span></div>
-                    </div>
-                `;
-                container.appendChild(card);
-            });
-        }
-
-        document.getElementById('sort').addEventListener('change', (e) => {
-            let sorted = [...allAnimes];
-            const mode = e.target.value;
-            if(!mode) return;
-
-            if(mode === "nom") sorted.sort((a,b) => a.nom.localeCompare(b.nom));
-            else if(mode === "score") sorted.sort((a,b) => parseFloat(b.score.replace(',','.')) - parseFloat(a.score.replace(',','.')));
-            else if(mode === "popularite") sorted.sort((a,b) => (parseInt(a.popularite.replace('#','')) || 9999) - (parseInt(b.popularite.replace('#','')) || 9999));
-            else if(mode === "sortie") sorted.sort((a,b) => b.sortie.localeCompare(a.sortie));
-            else if(mode === "episodes") sorted.sort((a,b) => (parseInt(b.episodes) || 0) - (parseInt(a.episodes) || 0));
-            else if(mode === "censure") sorted.sort((a,b) => a.censure.localeCompare(b.censure));
-            else if(mode === "etat") sorted.sort((a,b) => a.etat.localeCompare(b.etat));
-
-            displayAnimes(sorted);
-        });
-
-        document.getElementById('search').addEventListener('input', (e) => {
-            const val = e.target.value.toLowerCase();
-            displayAnimes(allAnimes.filter(a => a.nom.toLowerCase().includes(val)));
-        });
-
-        function randomAnime() {
-            if(allAnimes.length > 0) {
-                const a = allAnimes[Math.floor(Math.random()*allAnimes.length)];
-                window.location.href = `video.html?name=${encodeURIComponent(a.nom)}`;
-            }
-        }
-        init();
-    </script>
-</body>
-</html>
+                card.href = `video.html?name=${encodeURIComponent(a
