@@ -57,6 +57,7 @@
 
     <script>
         let allAnimes = [];
+
         function toggleTheme() {
             document.body.classList.toggle('light-mode');
             const isLight = document.body.classList.contains('light-mode');
@@ -66,8 +67,9 @@
         if(localStorage.getItem('theme') === 'light') toggleTheme();
         document.getElementById('year').innerText = new Date().getFullYear();
 
-        const clean = (str) => (str || "").replace(/^"|"$/g, "").trim();
+        const clean = (str) => (str || "").trim().replace(/^"|"$/g, "");
 
+        // Cette fonction découpe correctement la ligne même s'il y a des points-virgules dans la description
         function splitCSVLine(line) {
             const result = [];
             let current = "", inQuotes = false;
@@ -86,23 +88,27 @@
                 const response = await fetch('animes.csv');
                 const rawData = await response.text();
                 
-                // CORRECTION ICI : On filtre les lignes qui n'ont pas de contenu réel (;;;;;)
+                // On sépare par ligne et on retire les lignes vides (les ;;; à la fin de ton fichier)
                 const rows = rawData.split(/\r?\n/).filter(l => l.replace(/;/g, '').trim() !== "");
                 
                 allAnimes = rows.slice(1).map(line => {
                     const c = splitCSVLine(line);
-                    // On vérifie que le nom de l'anime existe
                     if (!c[0] || c[0].trim() === "") return null;
                     
                     return {
-                        nom: clean(c[0]), popularite: clean(c[1]), score: clean(c[2]),
-                        sortie: clean(c[3]), episodes: clean(c[4]), censure: clean(c[5]),
-                        etat: clean(c[6]), img: clean(c[8])
+                        nom: clean(c[0]),
+                        popularite: clean(c[1]),
+                        score: clean(c[2]),
+                        sortie: clean(c[3]),
+                        episodes: clean(c[4]),
+                        censure: clean(c[5]),
+                        etat: clean(c[6]),
+                        img: clean(c[8]) // On récupère bien la 9ème colonne (index 8)
                     };
                 }).filter(a => a !== null);
                 
                 displayAnimes(allAnimes);
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error("Erreur lecture CSV:", err); }
         }
 
         function displayAnimes(list) {
@@ -113,11 +119,12 @@
                 card.className = 'card';
                 card.href = `video.html?name=${encodeURIComponent(a.nom)}`;
                 
-                // Utilisation du nom d'image direct du CSV
-                const imgSrc = `img/${a.img}`;
+                // On nettoie le nom de l'image pour éviter les erreurs de lien
+                const imageFile = a.img.trim();
+                const imgSrc = `img/${imageFile}`;
 
                 card.innerHTML = `
-                    <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/220x280?text=Image+Manquante'">
+                    <img src="${imgSrc}" onerror="this.onerror=null; this.src='https://via.placeholder.com/220x280?text=Image+Introuvable'">
                     <div class="card-info">
                         <div class="card-title">${a.nom}</div>
                         <div class="info-line"><span class="label">Pop :</span> <span>${a.popularite}</span></div>
@@ -137,9 +144,9 @@
             const mode = e.target.value;
             if(mode === "nom") sorted.sort((a,b) => a.nom.localeCompare(b.nom));
             if(mode === "score") sorted.sort((a,b) => parseFloat(b.score.replace(',','.')) - parseFloat(a.score.replace(',','.'))).reverse();
-            if(mode === "popularite") sorted.sort((a,b) => (parseInt(a.popularite.replace('#','')) || 999) - (parseInt(b.popularite.replace('#','')) || 999));
+            if(mode === "popularite") sorted.sort((a,b) => (parseInt(a.popularite.replace('#','')) || 9999) - (parseInt(b.popularite.replace('#','')) || 9999));
             if(mode === "sortie") sorted.sort((a,b) => b.sortie.localeCompare(a.sortie));
-            if(mode === "episodes") sorted.sort((a,b) => (parseInt(a.episodes) || 0) - (parseInt(b.episodes) || 0)).reverse();
+            if(mode === "episodes") sorted.sort((a,b) => (parseInt(b.episodes) || 0) - (parseInt(a.episodes) || 0)).reverse();
             displayAnimes(sorted);
         });
 
