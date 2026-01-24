@@ -7,29 +7,17 @@
     <style>
         :root { --primary: #ff4757; --bg: #0f0f0f; --card-bg: #1a1a1a; --text: #eee; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
-        
         .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 30px; position: sticky; top: 10px; z-index: 100; background: rgba(15,15,15,0.95); padding: 15px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
         input, select, button { padding: 10px 15px; border-radius: 6px; border: 1px solid #333; background: #222; color: white; outline: none; cursor: pointer; }
         input:focus { border-color: var(--primary); }
         button { background: var(--primary); border: none; font-weight: bold; }
-        button:hover { opacity: 0.9; transform: scale(1.05); }
-
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
-        .card { background: var(--card-bg); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; border: 1px solid #333; }
+        .card { background: var(--card-bg); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; border: 1px solid #333; text-decoration: none; color: inherit; display: block; }
         .card:hover { transform: translateY(-5px); border-color: var(--primary); }
         .card img { width: 100%; height: 260px; object-fit: cover; background: #222; }
         .card-info { padding: 10px; text-align: center; }
         .card-title { font-weight: bold; font-size: 0.9em; height: 2.4em; overflow: hidden; display: flex; align-items: center; justify-content: center; line-height: 1.2; }
         .card-score { color: #ffa502; font-size: 0.85em; margin-top: 5px; font-weight: bold; }
-
-        .modal { display: none; position: fixed; z-index: 1000; left: 0; top: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9); overflow-y: auto; }
-        .modal-content { background: #1e1e1e; margin: 5% auto; padding: 25px; width: 90%; max-width: 800px; border-radius: 15px; position: relative; display: flex; flex-wrap: wrap; gap: 25px; border: 1px solid #444; }
-        .close { position: absolute; right: 20px; top: 10px; font-size: 30px; cursor: pointer; color: var(--primary); }
-        .modal-left { flex: 1; min-width: 250px; }
-        .modal-left img { width: 100%; border-radius: 10px; box-shadow: 0 5px 15px rgba(0,0,0,0.5); }
-        .modal-right { flex: 2; min-width: 300px; }
-        .tag { display: inline-block; background: #333; padding: 5px 12px; border-radius: 20px; font-size: 0.8em; margin: 4px; border: 1px dotted #555; }
-        .desc { line-height: 1.6; color: #bbb; margin-top: 20px; padding-top: 15px; border-top: 1px solid #333; font-size: 0.95em; white-space: pre-wrap; }
     </style>
 </head>
 <body>
@@ -42,43 +30,24 @@
             <option value="popularite">Popularité</option>
             <option value="score">Meilleur score</option>
             <option value="sortie">Année de sortie</option>
-            <option value="episodes">Nombre d'épisodes</option>
         </select>
         <button onclick="randomAnime()">🎲 Aléatoire</button>
     </div>
 
     <div class="grid" id="anime-container"></div>
 
-    <div id="animeModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal()">&times;</span>
-            <div class="modal-left" id="modal-img"></div>
-            <div class="modal-right">
-                <h2 id="modal-title" style="color:var(--primary); margin:0 0 15px 0;"></h2>
-                <div id="modal-tags"></div>
-                <div class="desc" id="modal-desc"></div>
-            </div>
-        </div>
-    </div>
-
     <script>
         let allAnimes = [];
-
         const clean = (str) => (str || "").replace(/^"|"$/g, "").trim();
 
         function splitCSVLine(line) {
             const result = [];
-            let current = "";
-            let inQuotes = false;
+            let current = "", inQuotes = false;
             for (let i = 0; i < line.length; i++) {
                 let char = line[i];
                 if (char === '"') inQuotes = !inQuotes;
-                else if (char === ';' && !inQuotes) {
-                    result.push(current);
-                    current = "";
-                } else {
-                    current += char;
-                }
+                else if (char === ';' && !inQuotes) { result.push(current); current = ""; }
+                else current += char;
             }
             result.push(current);
             return result;
@@ -92,97 +61,60 @@
                 
                 allAnimes = rows.slice(1).map(line => {
                     const c = splitCSVLine(line);
-                    
-                    // NOUVELLE LOGIQUE D'EXTRACTION DU NOMBRE D'EPISODES
-                    let rawEp = clean(c[4]);
-                    let numEps = parseInt(rawEp.replace(/[^0-9]/g, '')); // On garde que les chiffres
-                    
                     return {
                         nom: clean(c[0]),
                         popularite: clean(c[1]),
                         score: clean(c[2]).replace(',', '.'),
                         sortie: clean(c[3]),
-                        // Si on a trouvé un chiffre on l'affiche, sinon on garde le texte original
-                        episodes: isNaN(numEps) ? rawEp : numEps,
+                        episodes: clean(c[4]),
                         censure: clean(c[5]),
                         etat: clean(c[6]),
-                        desc: clean(c[7]) || "Aucune description disponible.",
-                        img: clean(c[8])
+                        desc: clean(c[7]),
+                        img: clean(c[8]),
+                        video: clean(c[9]) // On récupère l'URL Streamtape en colonne 10
                     };
                 }).filter(a => a.nom.length > 1);
-
                 displayAnimes(allAnimes);
-            } catch (err) { 
-                console.error("Erreur de chargement CSV:", err); 
-            }
+            } catch (err) { console.error(err); }
         }
 
         function displayAnimes(list) {
             const container = document.getElementById('anime-container');
             container.innerHTML = "";
             list.forEach(anime => {
-                const card = document.createElement('div');
+                const card = document.createElement('a');
                 card.className = 'card';
-                card.onclick = () => openModal(anime);
-                const imgPath = encodeURI(anime.img);
+                // Redirection vers video.html avec le nom en paramètre
+                card.href = `video.html?name=${encodeURIComponent(anime.nom)}`;
+                
                 card.innerHTML = `
-                    <img src="img/${imgPath}" loading="lazy" onerror="this.onerror=null; this.src='https://via.placeholder.com/200x260?text=Image+Introuvable'">
+                    <img src="img/${encodeURI(anime.img)}" loading="lazy" onerror="this.src='https://via.placeholder.com/200x260'">
                     <div class="card-info">
                         <div class="card-title">${anime.nom}</div>
-                        <div class="card-score">⭐ ${anime.score !== "" ? anime.score + '/10' : 'N/A'}</div>
+                        <div class="card-score">⭐ ${anime.score || 'N/A'}/10</div>
                     </div>
                 `;
                 container.appendChild(card);
             });
         }
 
-        function openModal(a) {
-            document.getElementById('modal-title').innerText = a.nom;
-            const imgPath = encodeURI(a.img);
-            document.getElementById('modal-img').innerHTML = `<img src="img/${imgPath}" onerror="this.src='https://via.placeholder.com/400x600?text=Pas+d+image'">`;
-            document.getElementById('modal-desc').innerText = a.desc;
-            document.getElementById('modal-tags').innerHTML = `
-                <span class="tag">🏆 Pop: ${a.popularite}</span>
-                <span class="tag">📅 Sortie: ${a.sortie}</span>
-                <span class="tag">📺 ${a.episodes} épisodes</span>
-                <span class="tag">🔞 Censure: ${a.censure}</span>
-                <span class="tag">📌 État: ${a.etat}</span>
-                <span class="tag">⭐ Score: ${a.score !== "" ? a.score + '/10' : 'N/A'}</span>
-            `;
-            document.getElementById('animeModal').style.display = "block";
-        }
-
-        function closeModal() { document.getElementById('animeModal').style.display = "none"; }
-
-        function randomAnime() {
-            if(allAnimes.length > 0) {
-                const random = allAnimes[Math.floor(Math.random() * allAnimes.length)];
-                openModal(random);
-            }
-        }
-
         document.getElementById('search').addEventListener('input', (e) => {
             const val = e.target.value.toLowerCase();
-            const filtered = allAnimes.filter(a => a.nom.toLowerCase().includes(val));
-            displayAnimes(filtered);
+            displayAnimes(allAnimes.filter(a => a.nom.toLowerCase().includes(val)));
         });
 
+        // Fonctions de tri simplifiées pour l'exemple
         document.getElementById('sort').addEventListener('change', (e) => {
             let sorted = [...allAnimes];
-            const mode = e.target.value;
-            if(mode === "score") sorted.sort((a,b) => (parseFloat(b.score) || 0) - (parseFloat(a.score) || 0));
-            if(mode === "popularite") sorted.sort((a,b) => {
-                const valA = parseInt(a.popularite.replace('#','')) || 9999;
-                const valB = parseInt(b.popularite.replace('#','')) || 9999;
-                return valA - valB;
-            });
-            if(mode === "nom") sorted.sort((a,b) => a.nom.localeCompare(b.nom));
-            if(mode === "sortie") sorted.sort((a,b) => b.sortie.localeCompare(a.sortie));
-            if(mode === "episodes") sorted.sort((a,b) => (parseInt(b.episodes) || 0) - (parseInt(a.episodes) || 0));
+            if(e.target.value === "nom") sorted.sort((a,b) => a.nom.localeCompare(b.nom));
             displayAnimes(sorted);
         });
 
-        window.onclick = (e) => { if(e.target == document.getElementById('animeModal')) closeModal(); }
+        function randomAnime() {
+            const a = allAnimes[Math.floor(Math.random()*allAnimes.length)];
+            window.location.href = `video.html?name=${encodeURIComponent(a.nom)}`;
+        }
+
         init();
     </script>
 </body>
