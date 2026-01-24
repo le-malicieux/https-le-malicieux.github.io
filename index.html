@@ -5,13 +5,18 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="google-site-verification" content="uysQ4sE5b19o93JOBGzo3ooKtm2KiSzBlKEkGlq2T-0" />
     <title>Le Malicieux - Catalogue d'Animes</title>
-    <meta name="description" content="Découvrez le catalogue d'animes du Malicieux. Popularité, score, épisodes et streaming.">
     
     <style>
         :root { --primary: #ff4757; --bg: #0f0f0f; --card-bg: #1a1a1a; --text: #eee; --header-bg: rgba(15,15,15,0.95); }
         body.light-mode { --bg: #EAEAEA; --card-bg: #FFFFFF; --text: #2d3436; --header-bg: rgba(234, 234, 234, 0.95); }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; display: flex; flex-direction: column; min-height: 100vh; }
         
+        /* Header avec logo à gauche */
+        .header-main { display: flex; align-items: center; gap: 20px; max-width: 1200px; margin: 0 auto 20px auto; width: 100%; }
+        .site-logo { width: 100px; height: 100px; object-fit: cover; border-radius: 12px; border: 2px solid var(--primary); }
+        .header-text h1 { margin: 0; color: var(--primary); font-size: 2em; }
+        .header-text p { margin: 5px 0 0 0; opacity: 0.8; font-style: italic; }
+
         .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 30px; position: sticky; top: 10px; z-index: 100; background: var(--header-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
         input, select, button { padding: 10px 15px; border-radius: 6px; border: 1px solid #333; background: #222; color: white; outline: none; cursor: pointer; }
         body.light-mode input, body.light-mode select { background: #fff; color: #333; border: 1px solid #ccc; }
@@ -25,14 +30,21 @@
         .card-info { padding: 15px; font-size: 0.85em; flex-grow: 1; }
         .card-title { font-weight: bold; font-size: 1.1em; margin-bottom: 10px; color: var(--primary); height: 2.4em; overflow: hidden; }
         .info-line { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 2px; }
-        body.light-mode .info-line { border-bottom-color: rgba(0,0,0,0.05); }
-        .label { color: #888; font-weight: normal; }
+        .label { color: #888; }
 
         footer { margin-top: 50px; padding: 20px; text-align: center; border-top: 1px solid #333; color: #888; }
         footer a { color: #7289da; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
+
+    <div class="header-main">
+        <img src="img/logo.jpg" alt="Logo" class="site-logo">
+        <div class="header-text">
+            <h1>Le Malicieux</h1>
+            <p>Catalogue d'animes malicieux</p>
+        </div>
+    </div>
 
     <div class="controls">
         <input type="text" id="search" placeholder="Rechercher...">
@@ -67,48 +79,48 @@
         if(localStorage.getItem('theme') === 'light') toggleTheme();
         document.getElementById('year').innerText = new Date().getFullYear();
 
-        const clean = (str) => (str || "").trim().replace(/^"|"$/g, "");
+        const clean = (str) => (str || "").trim().replace(/^"|"$/g, "").trim();
 
-        // Cette fonction découpe correctement la ligne même s'il y a des points-virgules dans la description
-        function splitCSVLine(line) {
-            const result = [];
-            let current = "", inQuotes = false;
-            for (let i = 0; i < line.length; i++) {
-                let char = line[i];
+        // Fonction pour découper la ligne sans être perturbé par les points-virgules dans le texte
+        function parseCSVLine(line) {
+            const cells = [];
+            let cell = "";
+            let inQuotes = false;
+            for (let char of line) {
                 if (char === '"') inQuotes = !inQuotes;
-                else if (char === ';' && !inQuotes) { result.push(current); current = ""; }
-                else current += char;
+                else if (char === ';' && !inQuotes) {
+                    cells.push(cell);
+                    cell = "";
+                } else {
+                    cell += char;
+                }
             }
-            result.push(current);
-            return result;
+            cells.push(cell);
+            return cells;
         }
 
         async function init() {
             try {
                 const response = await fetch('animes.csv');
                 const rawData = await response.text();
-                
-                // On sépare par ligne et on retire les lignes vides (les ;;; à la fin de ton fichier)
-                const rows = rawData.split(/\r?\n/).filter(l => l.replace(/;/g, '').trim() !== "");
+                // On ignore les lignes vides du CSV
+                const rows = rawData.split(/\r?\n/).filter(l => l.replace(/;/g, '').trim().length > 2);
                 
                 allAnimes = rows.slice(1).map(line => {
-                    const c = splitCSVLine(line);
-                    if (!c[0] || c[0].trim() === "") return null;
+                    const c = parseCSVLine(line);
+                    if (!c[0] || clean(c[0]) === "") return null;
                     
                     return {
-                        nom: clean(c[0]),
-                        popularite: clean(c[1]),
-                        score: clean(c[2]),
-                        sortie: clean(c[3]),
-                        episodes: clean(c[4]),
-                        censure: clean(c[5]),
-                        etat: clean(c[6]),
-                        img: clean(c[8]) // On récupère bien la 9ème colonne (index 8)
+                        nom: clean(c[0]), popularite: clean(c[1]), score: clean(c[2]),
+                        sortie: clean(c[3]), episodes: clean(c[4]), censure: clean(c[5]),
+                        etat: clean(c[6]), 
+                        // On prend la toute dernière colonne pour l'image
+                        img: clean(c[c.length - 1]) 
                     };
                 }).filter(a => a !== null);
                 
                 displayAnimes(allAnimes);
-            } catch (err) { console.error("Erreur lecture CSV:", err); }
+            } catch (err) { console.error(err); }
         }
 
         function displayAnimes(list) {
@@ -119,9 +131,8 @@
                 card.className = 'card';
                 card.href = `video.html?name=${encodeURIComponent(a.nom)}`;
                 
-                // On nettoie le nom de l'image pour éviter les erreurs de lien
-                const imageFile = a.img.trim();
-                const imgSrc = `img/${imageFile}`;
+                // Chemin vers l'image dans ton dossier img/
+                const imgSrc = `img/${a.img}`;
 
                 card.innerHTML = `
                     <img src="${imgSrc}" onerror="this.onerror=null; this.src='https://via.placeholder.com/220x280?text=Image+Introuvable'">
@@ -142,11 +153,12 @@
         document.getElementById('sort').addEventListener('change', (e) => {
             let sorted = [...allAnimes];
             const mode = e.target.value;
+            if(!mode) return;
             if(mode === "nom") sorted.sort((a,b) => a.nom.localeCompare(b.nom));
             if(mode === "score") sorted.sort((a,b) => parseFloat(b.score.replace(',','.')) - parseFloat(a.score.replace(',','.'))).reverse();
             if(mode === "popularite") sorted.sort((a,b) => (parseInt(a.popularite.replace('#','')) || 9999) - (parseInt(b.popularite.replace('#','')) || 9999));
             if(mode === "sortie") sorted.sort((a,b) => b.sortie.localeCompare(a.sortie));
-            if(mode === "episodes") sorted.sort((a,b) => (parseInt(b.episodes) || 0) - (parseInt(a.episodes) || 0)).reverse();
+            if(mode === "episodes") sorted.sort((a,b) => (parseInt(a.episodes) || 0) - (parseInt(b.episodes) || 0)).reverse();
             displayAnimes(sorted);
         });
 
