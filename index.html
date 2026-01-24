@@ -80,15 +80,21 @@
                 const response = await fetch('animes.csv');
                 const rawData = await response.text();
                 
-                // Cette regex magique permet de séparer les lignes TOUT EN ignorant les retours à la ligne entre guillemets
-                const rows = rawData.match(/(".*?"|[^"\r\n]+)(?=\r?\n|$)/g) || [];
+                // On sépare les lignes en gérant les retours à la ligne complexes
+                const rows = rawData.split(/\r?\n/).filter(r => r.includes(';'));
                 
                 allAnimes = rows.slice(1).map(line => {
-                    // On sépare par ; mais on protège ce qui est entre guillemets
-                    const c = line.match(/(".*?"|[^;]+)(?=;|$)/g) || [];
-                    if (c.length < 8) return null;
+                    // Nettoyage des guillemets et espaces
+                    const clean = (s) => s ? s.trim().replace(/^"|"$/g, '') : "";
                     
-                    const clean = (s) => s ? s.trim().replace(/^"|"$/g, '').replace(/\r?\n|\r/g, " ") : "";
+                    const c = line.split(';');
+                    if (c.length < 5) return null;
+
+                    // Sécurité : l'image est TOUJOURS le dernier élément de la ligne
+                    let imageFile = clean(c[c.length - 1]);
+                    if (!imageFile.toLowerCase().endsWith('.jpg') && !imageFile.toLowerCase().endsWith('.png')) {
+                        imageFile = ""; // Protection si la ligne est vraiment cassée
+                    }
 
                     return {
                         nom: clean(c[0]),
@@ -98,8 +104,7 @@
                         episodes: clean(c[4]),
                         censure: clean(c[5]),
                         etat: clean(c[6]),
-                        // On force la récupération de la DERNIÈRE colonne pour l'image
-                        img: clean(c[c.length - 1])
+                        img: imageFile
                     };
                 }).filter(a => a !== null && a.nom !== "");
 
@@ -115,8 +120,7 @@
                 card.className = 'card';
                 card.href = `video.html?name=${encodeURIComponent(a.nom)}`;
                 
-                // On s'assure que le nom de l'image ne contient pas de restes de code CSV
-                const imgSrc = "img/" + a.img.split(';')[0].trim();
+                const imgSrc = "img/" + a.img;
 
                 card.innerHTML = `
                     <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/220x280?text=Image+Introuvable'">
@@ -143,7 +147,7 @@
             else if(mode === "score") sorted.sort((a,b) => parseFloat(b.score.replace(',','.')) - parseFloat(a.score.replace(',','.'))).reverse();
             else if(mode === "popularite") sorted.sort((a,b) => (parseInt(a.popularite.replace('#','')) || 9999) - (parseInt(b.popularite.replace('#','')) || 9999));
             else if(mode === "sortie") sorted.sort((a,b) => b.sortie.localeCompare(a.sortie));
-            else if(mode === "episodes") sorted.sort((a,b) => (parseInt(a.episodes) || 0) - (parseInt(a.episodes) || 0)).reverse();
+            else if(mode === "episodes") sorted.sort((a,b) => (parseInt(b.episodes) || 0) - (parseInt(a.episodes) || 0)).reverse();
             else if(mode === "censure") sorted.sort((a,b) => a.censure.localeCompare(b.censure));
             else if(mode === "etat") sorted.sort((a,b) => a.etat.localeCompare(b.etat));
 
