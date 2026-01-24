@@ -11,19 +11,22 @@
         input, select, button { padding: 10px 15px; border-radius: 6px; border: 1px solid #333; background: #222; color: white; outline: none; cursor: pointer; }
         button { background: var(--primary); border: none; font-weight: bold; }
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 20px; }
-        .card { background: var(--card-bg); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; border: 1px solid #333; text-decoration: none; color: inherit; }
+        .card { background: var(--card-bg); border-radius: 10px; overflow: hidden; cursor: pointer; transition: 0.3s; border: 1px solid #333; text-decoration: none; color: inherit; display: block; }
         .card:hover { transform: translateY(-5px); border-color: var(--primary); }
         .card img { width: 100%; height: 260px; object-fit: cover; background: #222; }
         .card-info { padding: 10px; text-align: center; }
         .card-title { font-weight: bold; font-size: 0.9em; height: 2.4em; overflow: hidden; display: flex; align-items: center; justify-content: center; line-height: 1.2; }
+        .card-score { color: #ffa502; font-size: 0.85em; margin-top: 5px; font-weight: bold; }
     </style>
 </head>
 <body>
     <div class="controls">
-        <input type="text" id="search" placeholder="Rechercher...">
+        <input type="text" id="search" placeholder="Rechercher un anime...">
         <select id="sort">
+            <option value="">Trier par...</option>
             <option value="nom">Nom (A-Z)</option>
             <option value="score">Meilleur score</option>
+            <option value="sortie">Année de sortie</option>
         </select>
         <button onclick="randomAnime()">🎲 Aléatoire</button>
     </div>
@@ -51,16 +54,18 @@
                 const response = await fetch('animes.csv');
                 const rawData = await response.text();
                 const rows = rawData.split(/\r?\n(?=(?:(?:[^"]*"){2})*[^"]*$)/).filter(l => l.trim() !== "");
+                
                 allAnimes = rows.slice(1).map(line => {
                     const c = splitCSVLine(line);
                     return {
                         nom: clean(c[0]),
-                        score: clean(c[2]),
+                        score: clean(c[2]).replace(',', '.'),
+                        sortie: clean(c[3]),
                         img: clean(c[8])
                     };
                 }).filter(a => a.nom.length > 1);
                 displayAnimes(allAnimes);
-            } catch (err) { console.error(err); }
+            } catch (err) { console.error("Erreur init:", err); }
         }
 
         function displayAnimes(list) {
@@ -70,14 +75,38 @@
                 const card = document.createElement('a');
                 card.className = 'card';
                 card.href = `video.html?name=${encodeURIComponent(anime.nom)}`;
-                card.innerHTML = `<img src="img/${encodeURI(anime.img)}" onerror="this.src='https://via.placeholder.com/200x260'"><div class="card-info"><div class="card-title">${anime.nom}</div></div>`;
+                card.innerHTML = `
+                    <img src="img/${encodeURI(anime.img)}" onerror="this.src='https://via.placeholder.com/200x260?text=Image+Introuvable'">
+                    <div class="card-info">
+                        <div class="card-title">${anime.nom}</div>
+                        <div class="card-score">⭐ ${anime.score || 'N/A'}/10</div>
+                    </div>
+                `;
                 container.appendChild(card);
             });
         }
 
+        // --- RECHERCHE ET TRI ---
+        document.getElementById('search').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            const filtered = allAnimes.filter(a => a.nom.toLowerCase().includes(val));
+            displayAnimes(filtered);
+        });
+
+        document.getElementById('sort').addEventListener('change', (e) => {
+            let sorted = [...allAnimes];
+            const mode = e.target.value;
+            if(mode === "nom") sorted.sort((a,b) => a.nom.localeCompare(b.nom));
+            if(mode === "score") sorted.sort((a,b) => parseFloat(b.score) - parseFloat(a.score));
+            if(mode === "sortie") sorted.sort((a,b) => b.sortie.localeCompare(a.sortie));
+            displayAnimes(sorted);
+        });
+
         function randomAnime() {
-            const a = allAnimes[Math.floor(Math.random()*allAnimes.length)];
-            window.location.href = `video.html?name=${encodeURIComponent(a.nom)}`;
+            if(allAnimes.length > 0) {
+                const a = allAnimes[Math.floor(Math.random()*allAnimes.length)];
+                window.location.href = `video.html?name=${encodeURIComponent(a.nom)}`;
+            }
         }
 
         init();
