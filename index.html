@@ -21,7 +21,6 @@
 
         .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 25px; }
         
-        /* Cartes à hauteur fixe pour un alignement parfait */
         .card { 
             background: var(--card-bg); 
             border-radius: 12px; 
@@ -106,36 +105,40 @@
                 const response = await fetch('animes.csv');
                 const rawData = await response.text();
                 
-                // Découpage simple par ligne
-                const rows = rawData.split(/\r?\n/).filter(r => r.trim().length > 0);
+                // Découpage par ligne
+                const rows = rawData.split(/\r?\n/);
                 
-                allAnimes = rows.slice(1).map(line => {
+                allAnimes = [];
+                rows.slice(1).forEach(line => {
                     const c = line.split(';');
                     const clean = (s) => s ? s.trim().replace(/^"|"$/g, '') : "";
 
                     const nomAnime = clean(c[0]);
-                    if (!nomAnime) return null;
+                    
+                    // ON FILTRE : Le nom doit exister et faire plus d'un caractère
+                    // Cela évite de compter les bouts de phrases orphelins comme des animes
+                    if (nomAnime && nomAnime.length > 1) {
+                        let imgFile = clean(c[8]);
+                        // Si pas d'image en colonne 8 ou mauvais format, on check la dernière colonne
+                        if (!imgFile || (!imgFile.toLowerCase().endsWith('.jpg') && !imgFile.toLowerCase().endsWith('.png'))) {
+                            imgFile = clean(c[c.length - 1]);
+                        }
 
-                    // On récupère l'image : soit en colonne 8, soit tout à la fin si décalage
-                    let imgFile = clean(c[8]);
-                    if (!imgFile || (!imgFile.endsWith('.jpg') && !imgFile.endsWith('.png'))) {
-                        imgFile = clean(c[c.length - 1]);
+                        allAnimes.push({
+                            nom: nomAnime,
+                            popularite: clean(c[1]) || "?",
+                            score: clean(c[2]) || "0",
+                            sortie: clean(c[3]) || "?",
+                            episodes: clean(c[4]) || "?",
+                            censure: clean(c[5]) || "?",
+                            etat: clean(c[6]) || "?",
+                            img: imgFile
+                        });
                     }
-
-                    return {
-                        nom: nomAnime,
-                        popularite: clean(c[1]) || "?",
-                        score: clean(c[2]) || "0",
-                        sortie: clean(c[3]) || "?",
-                        episodes: clean(c[4]) || "?",
-                        censure: clean(c[5]) || "?",
-                        etat: clean(c[6]) || "?",
-                        img: imgFile
-                    };
-                }).filter(a => a !== null);
+                });
 
                 displayAnimes(allAnimes);
-                console.log(allAnimes.length + " animes chargés.");
+                console.log(allAnimes.length + " animes réels affichés.");
             } catch (err) { console.error(err); }
         }
 
@@ -163,7 +166,6 @@
             });
         }
 
-        // Système de tri identique
         document.getElementById('sort').addEventListener('change', (e) => {
             let sorted = [...allAnimes];
             const mode = e.target.value;
