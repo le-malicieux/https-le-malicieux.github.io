@@ -7,6 +7,7 @@
     
     <title>Le Malicieux - Catalogue d'Animes & Streaming</title>
     <meta name="description" content="Bienvenue sur Le Malicieux ! Explorez notre catalogue d'animes complet avec scores, popularité et épisodes. Trouvez votre prochain coup de cœur en streaming ici.">
+    
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://le-malicieux.github.io/">
     <meta property="og:title" content="Le Malicieux - Catalogue d'Animes">
@@ -33,8 +34,9 @@
         .card { background: var(--card-bg); border-radius: 12px; overflow: hidden; transition: 0.3s; border: 1px solid #333; text-decoration: none; color: inherit; display: flex; flex-direction: column; }
         .card:hover { transform: translateY(-5px); border-color: var(--primary); }
         .card img { width: 100%; height: 280px; object-fit: cover; }
+        
         .card-info { padding: 15px; font-size: 0.85em; flex-grow: 1; }
-        .card-title { font-weight: bold; font-size: 1.1em; margin-bottom: 10px; color: var(--primary); height: 2.4em; overflow: hidden; }
+        .card-title { font-weight: bold; font-size: 1.1em; margin-bottom: 10px; color: var(--primary); height: 2.4em; overflow: hidden; display: flex; align-items: center; }
         .info-line { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .label { color: #888; }
 
@@ -87,39 +89,36 @@
         if(localStorage.getItem('theme') === 'light') toggleTheme();
         document.getElementById('year').innerText = new Date().getFullYear();
 
-        const clean = (str) => (str || "").replace(/^"|"$/g, "").trim();
-
-        function splitCSVLine(line) {
-            const result = [];
-            let current = "", inQuotes = false;
-            for (let i = 0; i < line.length; i++) {
-                let char = line[i];
-                if (char === '"') inQuotes = !inQuotes;
-                else if (char === ';' && !inQuotes) { result.push(current); current = ""; }
-                else current += char;
-            }
-            result.push(current);
-            return result;
-        }
+        const clean = (str) => (str || "").trim().replace(/^"|"$/g, "");
 
         async function init() {
             try {
                 const response = await fetch('animes.csv');
                 const rawData = await response.text();
-                // DECOUPAGE SIMPLE POUR EVITER LES BUGS
-                const rows = rawData.split(/\r?\n/).filter(l => l.trim() !== "");
+                // Découpage par ligne sans règle complexe pour éviter les erreurs
+                const rows = rawData.split(/\r?\n/).filter(line => line.trim().length > 10);
                 
                 allAnimes = rows.slice(1).map(line => {
-                    const c = splitCSVLine(line);
-                    if (c.length < 9) return null;
+                    // Séparation par point-virgule
+                    const c = line.split(';');
+                    if (c.length < 7) return null;
+
                     return {
-                        nom: clean(c[0]), popularite: clean(c[1]), score: clean(c[2]),
-                        sortie: clean(c[3]), episodes: clean(c[4]), censure: clean(c[5]),
-                        etat: clean(c[6]), img: clean(c[8])
+                        nom: clean(c[0]),
+                        popularite: clean(c[1]),
+                        score: clean(c[2]),
+                        sortie: clean(c[3]),
+                        episodes: clean(c[4]),
+                        censure: clean(c[5]),
+                        etat: clean(c[6]),
+                        img: clean(c[8])
                     };
-                }).filter(a => a !== null);
+                }).filter(a => a !== null && a.nom !== "");
+
                 displayAnimes(allAnimes);
-            } catch (err) { console.error(err); }
+            } catch (err) {
+                console.error("Erreur de chargement :", err);
+            }
         }
 
         function displayAnimes(list) {
@@ -130,7 +129,7 @@
                 card.className = 'card';
                 card.href = `video.html?name=${encodeURIComponent(a.nom)}`;
                 card.innerHTML = `
-                    <img src="img/${encodeURI(a.img)}" onerror="this.src='https://via.placeholder.com/220x280?text=Pas+d+image'">
+                    <img src="img/${encodeURI(a.img)}" onerror="this.src='https://via.placeholder.com/220x280?text=Image+Introuvable'">
                     <div class="card-info">
                         <div class="card-title">${a.nom}</div>
                         <div class="info-line"><span class="label">Pop :</span> <span>${a.popularite}</span></div>
@@ -148,13 +147,16 @@
         document.getElementById('sort').addEventListener('change', (e) => {
             let sorted = [...allAnimes];
             const mode = e.target.value;
+            if(!mode) return;
+
             if(mode === "nom") sorted.sort((a,b) => a.nom.localeCompare(b.nom));
-            if(mode === "score") sorted.sort((a,b) => parseFloat(b.score.replace(',','.')) - parseFloat(a.score.replace(',','.')));
-            if(mode === "popularite") sorted.sort((a,b) => (parseInt(a.popularite.replace('#','')) || 999) - (parseInt(b.popularite.replace('#','')) || 999));
-            if(mode === "sortie") sorted.sort((a,b) => b.sortie.localeCompare(a.sortie));
-            if(mode === "episodes") sorted.sort((a,b) => (parseInt(b.episodes) || 0) - (parseInt(a.episodes) || 0));
-            if(mode === "censure") sorted.sort((a,b) => a.censure.localeCompare(b.censure));
-            if(mode === "etat") sorted.sort((a,b) => a.etat.localeCompare(b.etat));
+            else if(mode === "score") sorted.sort((a,b) => parseFloat(b.score.replace(',','.')) - parseFloat(a.score.replace(',','.')));
+            else if(mode === "popularite") sorted.sort((a,b) => (parseInt(a.popularite.replace('#','')) || 9999) - (parseInt(b.popularite.replace('#','')) || 9999));
+            else if(mode === "sortie") sorted.sort((a,b) => b.sortie.localeCompare(a.sortie));
+            else if(mode === "episodes") sorted.sort((a,b) => (parseInt(b.episodes) || 0) - (parseInt(a.episodes) || 0));
+            else if(mode === "censure") sorted.sort((a,b) => a.censure.localeCompare(b.censure));
+            else if(mode === "etat") sorted.sort((a,b) => a.etat.localeCompare(b.etat));
+
             displayAnimes(sorted);
         });
 
