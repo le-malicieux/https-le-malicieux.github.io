@@ -3,9 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Le Malicieux - Catalogue</title>
+    
+    <meta name="google-site-verification" content="uysQ4sE5b19o93JOBGzo3ooKtm2KiSzBlKEkGlq2T-0" />
+
+    <title>Le Malicieux - Catalogue d'Animes & Streaming</title>
+    <meta name="description" content="Découvrez le catalogue d'animes du Malicieux. Classements par popularité, score, et visionnage en streaming.">
+    
+    <meta property="og:title" content="Le Malicieux - Catalogue Anime">
+    <meta property="og:description" content="Ton catalogue d'animes préféré avec tri personnalisé et streaming.">
+    <meta property="og:image" content="https://le-malicieux.github.io/img/logo.jpg">
+    <meta property="og:url" content="https://le-malicieux.github.io/">
+
     <style>
-        /* Variables de couleurs */
         :root {
             --primary: #ff4757;
             --bg: #0f0f0f;
@@ -14,9 +23,8 @@
             --header-bg: rgba(15,15,15,0.95);
         }
 
-        /* Mode Clair (Gris Perle) */
         body.light-mode {
-            --bg: #EAEAEA; /* Gris Perle */
+            --bg: #EAEAEA;
             --card-bg: #FFFFFF;
             --text: #2d3436;
             --header-bg: rgba(234, 234, 234, 0.95);
@@ -40,7 +48,6 @@
         .card-info { padding: 12px; text-align: center; }
         .card-title { font-weight: bold; font-size: 0.9em; height: 2.4em; overflow: hidden; display: flex; align-items: center; justify-content: center; line-height: 1.2; }
 
-        /* Footer */
         footer { margin-top: 50px; padding: 20px; text-align: center; border-top: 1px solid #333; color: #888; font-size: 0.9em; }
         footer a { color: #7289da; text-decoration: none; font-weight: bold; }
         footer a:hover { text-decoration: underline; }
@@ -70,13 +77,12 @@
 
     <footer>
         <p>&copy; <span id="year"></span> Le Malicieux - Tous droits réservés</p>
-        <p>Rejoins-nous sur <a href="https://discord.gg/4DY3Zq4vW4" target="_blank">Discord</a></p>
+        <p>Rejoins-nous sur <a href="TON_LIEN_DISCORD_ICI" target="_blank">Discord</a></p>
     </footer>
 
     <script>
         let allAnimes = [];
 
-        // Gestion du thème
         function toggleTheme() {
             const body = document.body;
             const btn = document.getElementById('theme-btn');
@@ -90,10 +96,7 @@
             }
         }
 
-        // Appliquer le thème sauvegardé au démarrage
         if(localStorage.getItem('theme') === 'light') toggleTheme();
-
-        // Année automatique
         document.getElementById('year').innerText = new Date().getFullYear();
 
         const clean = (str) => (str || "").replace(/^"|"$/g, "").trim();
@@ -152,7 +155,6 @@
             });
         }
 
-        // Tri
         document.getElementById('sort').addEventListener('change', (e) => {
             let sorted = [...allAnimes];
             const mode = e.target.value;
@@ -166,7 +168,6 @@
             displayAnimes(sorted);
         });
 
-        // Recherche
         document.getElementById('search').addEventListener('input', (e) => {
             const val = e.target.value.toLowerCase();
             displayAnimes(allAnimes.filter(a => a.nom.toLowerCase().includes(val)));
