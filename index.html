@@ -80,21 +80,19 @@
                 const response = await fetch('animes.csv');
                 const rawData = await response.text();
                 
-                // On sépare les lignes en gérant les retours à la ligne complexes
-                const rows = rawData.split(/\r?\n/).filter(r => r.includes(';'));
+                // --- LA CORRECTION MAGIQUE POUR LES IMAGES ---
+                // Cette ligne permet de découper le CSV en ignorant les retours à la ligne à l'intérieur des descriptions
+                const rows = rawData.match(/(".*?"|[^"\r\n]+)(?=\r?\n|$)/g) || [];
                 
                 allAnimes = rows.slice(1).map(line => {
-                    // Nettoyage des guillemets et espaces
-                    const clean = (s) => s ? s.trim().replace(/^"|"$/g, '') : "";
+                    // On découpe par point-virgule mais on protège ce qui est entre guillemets
+                    const c = line.match(/(".*?"|[^;]+)(?=;|$)/g) || [];
+                    if (c.length < 8) return null;
                     
-                    const c = line.split(';');
-                    if (c.length < 5) return null;
+                    const clean = (s) => s ? s.trim().replace(/^"|"$/g, '').replace(/\r?\n|\r/g, " ") : "";
 
-                    // Sécurité : l'image est TOUJOURS le dernier élément de la ligne
-                    let imageFile = clean(c[c.length - 1]);
-                    if (!imageFile.toLowerCase().endsWith('.jpg') && !imageFile.toLowerCase().endsWith('.png')) {
-                        imageFile = ""; // Protection si la ligne est vraiment cassée
-                    }
+                    // L'image est TOUJOURS le dernier élément
+                    let imgRaw = clean(c[c.length - 1]);
 
                     return {
                         nom: clean(c[0]),
@@ -104,7 +102,7 @@
                         episodes: clean(c[4]),
                         censure: clean(c[5]),
                         etat: clean(c[6]),
-                        img: imageFile
+                        img: imgRaw
                     };
                 }).filter(a => a !== null && a.nom !== "");
 
@@ -120,7 +118,8 @@
                 card.className = 'card';
                 card.href = `video.html?name=${encodeURIComponent(a.nom)}`;
                 
-                const imgSrc = "img/" + a.img;
+                // On nettoie le nom du fichier (on enlève les espaces de début/fin)
+                const imgSrc = "img/" + a.img.trim();
 
                 card.innerHTML = `
                     <img src="${imgSrc}" onerror="this.src='https://via.placeholder.com/220x280?text=Image+Introuvable'">
@@ -138,6 +137,7 @@
             });
         }
 
+        // Système de tri
         document.getElementById('sort').addEventListener('change', (e) => {
             let sorted = [...allAnimes];
             const mode = e.target.value;
@@ -149,23 +149,4 @@
             else if(mode === "sortie") sorted.sort((a,b) => b.sortie.localeCompare(a.sortie));
             else if(mode === "episodes") sorted.sort((a,b) => (parseInt(b.episodes) || 0) - (parseInt(a.episodes) || 0)).reverse();
             else if(mode === "censure") sorted.sort((a,b) => a.censure.localeCompare(b.censure));
-            else if(mode === "etat") sorted.sort((a,b) => a.etat.localeCompare(b.etat));
-
-            displayAnimes(sorted);
-        });
-
-        document.getElementById('search').addEventListener('input', (e) => {
-            const val = e.target.value.toLowerCase();
-            displayAnimes(allAnimes.filter(a => a.nom.toLowerCase().includes(val)));
-        });
-
-        function randomAnime() {
-            if(allAnimes.length > 0) {
-                const a = allAnimes[Math.floor(Math.random()*allAnimes.length)];
-                window.location.href = `video.html?name=${encodeURIComponent(a.nom)}`;
-            }
-        }
-        init();
-    </script>
-</body>
-</html>
+            else if(mode === "etat") sorted.sort
