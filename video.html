@@ -3,93 +3,114 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Visionnage - Anime</title>
+    <title>Visionnage - Le Malicieux</title>
     <style>
         :root { --primary: #ff4757; --bg: #0f0f0f; --text: #eee; }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; }
         .container { max-width: 1000px; margin: 0 auto; }
-        .back-btn { display: inline-block; padding: 10px 20px; background: var(--primary); color: white; text-decoration: none; border-radius: 5px; margin-bottom: 20px; font-weight: bold; }
-        .video-container { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 20px; border: 1px solid #333; }
+        .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px; }
+        .back-btn { padding: 10px 20px; background: #333; color: white; text-decoration: none; border-radius: 5px; font-weight: bold; }
+        .back-btn:hover { background: var(--primary); }
+        
+        /* Menu déroulant épisodes */
+        .episode-selector { padding: 10px; border-radius: 5px; background: #222; color: white; border: 1px solid var(--primary); cursor: pointer; font-size: 16px; }
+
+        .video-container { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden; margin-bottom: 20px; border: 1px solid #333; box-shadow: 0 0 30px rgba(255, 71, 87, 0.2); }
         iframe { width: 100%; height: 100%; border: none; }
-        .details { display: flex; gap: 20px; flex-wrap: wrap; background: #1a1a1a; padding: 20px; border-radius: 10px; }
-        .details img { width: 200px; border-radius: 10px; }
+        
+        .details { display: flex; gap: 20px; flex-wrap: wrap; background: #1a1a1a; padding: 25px; border-radius: 15px; border: 1px solid #333; }
+        .details img { width: 220px; border-radius: 10px; object-fit: cover; }
         .info { flex: 1; min-width: 300px; }
-        .tag { background: #333; padding: 5px 10px; border-radius: 15px; font-size: 0.8em; margin-right: 5px; }
-        h1 { color: var(--primary); margin-top: 0; }
-        p { line-height: 1.6; color: #bbb; }
+        h1 { color: var(--primary); margin: 0 0 15px 0; }
+        .tag { background: #333; padding: 5px 12px; border-radius: 20px; font-size: 0.85em; margin-right: 8px; border: 1px solid #444; }
+        p.desc { line-height: 1.6; color: #bbb; margin-top: 20px; white-space: pre-wrap; }
     </style>
 </head>
 <body>
 
     <div class="container">
-        <a href="index.html" class="back-btn">← Retour au catalogue</a>
+        <div class="header-nav">
+            <a href="index.html" class="back-btn">← Retour</a>
+            <div id="selector-container"></div> </div>
         
-        <div id="content">
-            <p>Chargement de l'épisode...</p>
+        <div id="video-wrapper" class="video-container">
+            </div>
+
+        <div id="details-content">
+            <p>Chargement...</p>
         </div>
     </div>
 
     <script>
         const clean = (str) => (str || "").replace(/^"|"$/g, "").trim();
-        
-        async function loadVideo() {
-            // 1. Récupérer le nom de l'anime dans l'URL (?name=...)
+
+        function formatStreamtape(url) {
+            if(!url) return "";
+            return url.trim().replace('/v/', '/e/');
+        }
+
+        async function initVideo() {
             const params = new URLSearchParams(window.location.search);
             const animeName = params.get('name');
 
-            if (!animeName) {
-                document.getElementById('content').innerHTML = "Anime non trouvé.";
-                return;
-            }
-
-            // 2. Charger le CSV pour trouver les infos
             const response = await fetch('animes.csv');
             const data = await response.text();
-            const rows = data.split(/\r?\n/).slice(1);
+            // On utilise la même logique de split que sur l'index
+            const rows = data.split(/\r?\n(?=(?:(?:[^"]*"){2})*[^"]*$)/).filter(l => l.trim() !== "");
             
             let found = null;
             for(let row of rows) {
-                let c = row.split(';');
+                let c = row.split(';'); // Attention: si splitCSVLine est nécessaire, utilise-la
                 if (clean(c[0]) === animeName) {
                     found = {
                         nom: clean(c[0]),
                         score: clean(c[2]),
-                        episodes: clean(c[4]),
+                        episodes_count: clean(c[4]),
                         desc: clean(c[7]),
                         img: clean(c[8]),
-                        video: clean(c[9]) // Ton lien Streamtape
+                        video_urls: clean(c[9]).split(',') // On coupe par la virgule
                     };
                     break;
                 }
             }
 
             if (found) {
-                document.title = "Regarder " + found.nom;
-                // Si le lien est un lien streamtape classique, on le transforme en lien embed
-                let videoSrc = found.video;
-                if(videoSrc.includes('streamtape.com/v/')) {
-                    videoSrc = videoSrc.replace('/v/', '/e/');
+                // 1. Créer le lecteur avec le premier épisode
+                const videoWrapper = document.getElementById('video-wrapper');
+                videoWrapper.innerHTML = `<iframe id="main-player" src="${formatStreamtape(found.video_urls[0])}" allowfullscreen></iframe>`;
+
+                // 2. Créer le menu déroulant si plus d'un épisode
+                if (found.video_urls.length > 1) {
+                    let htmlSelect = `<select class="episode-selector" onchange="changeEpisode(this.value)">`;
+                    found.video_urls.forEach((url, index) => {
+                        htmlSelect += `<option value="${formatStreamtape(url)}">Épisode ${index + 1}</option>`;
+                    });
+                    htmlSelect += `</select>`;
+                    document.getElementById('selector-container').innerHTML = htmlSelect;
                 }
 
-                document.getElementById('content').innerHTML = `
-                    <div class="video-container">
-                        <iframe src="${videoSrc}" allowfullscreen></iframe>
-                    </div>
+                // 3. Afficher les détails
+                document.getElementById('details-content').innerHTML = `
                     <div class="details">
                         <img src="img/${found.img}" onerror="this.src='https://via.placeholder.com/200x300'">
                         <div class="info">
                             <h1>${found.nom}</h1>
-                            <p><span class="tag">⭐ ${found.score}/10</span> <span class="tag">📺 ${found.episodes}</span></p>
-                            <p>${found.desc}</p>
+                            <p>
+                                <span class="tag">⭐ Score: ${found.score}/10</span>
+                                <span class="tag">📺 ${found.episodes_count} épisodes</span>
+                            </p>
+                            <p class="desc">${found.desc}</p>
                         </div>
                     </div>
                 `;
-            } else {
-                document.getElementById('content').innerHTML = "Désolé, impossible de trouver les données de cet anime.";
             }
         }
 
-        loadVideo();
+        function changeEpisode(url) {
+            document.getElementById('main-player').src = url;
+        }
+
+        initVideo();
     </script>
 </body>
 </html>
