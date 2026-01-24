@@ -5,11 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Le Malicieux - Catalogue d'Animes</title>
     <style>
+        /* Styles de base préservés */
         :root { --primary: #ff4757; --bg: #0f0f0f; --card-bg: #1a1a1a; --text: #eee; --header-bg: rgba(15,15,15,0.95); }
         body.light-mode { --bg: #EAEAEA; --card-bg: #FFFFFF; --text: #2d3436; --header-bg: rgba(234, 234, 234, 0.95); }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; transition: 0.3s; }
         
-        /* Header avec logo */
+        /* AJOUT : Style du Logo et Slogan */
         .header-main { display: flex; align-items: center; gap: 20px; max-width: 1200px; margin: 0 auto 20px auto; width: 100%; }
         .site-logo { width: 100px; height: 100px; object-fit: cover; border-radius: 12px; border: 2px solid var(--primary); }
         .header-text h1 { margin: 0; color: var(--primary); font-size: 2em; }
@@ -24,10 +25,9 @@
         .card { background: var(--card-bg); border-radius: 12px; overflow: hidden; transition: 0.3s; border: 1px solid #333; text-decoration: none; color: inherit; display: flex; flex-direction: column; }
         .card:hover { transform: translateY(-5px); border-color: var(--primary); }
         .card img { width: 100%; height: 280px; object-fit: cover; background: #000; }
-        
         .card-info { padding: 15px; font-size: 0.85em; flex-grow: 1; }
         .card-title { font-weight: bold; font-size: 1.1em; margin-bottom: 10px; color: var(--primary); height: 2.4em; overflow: hidden; }
-        .info-line { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 2px; }
+        .info-line { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
         .label { color: #888; }
     </style>
 </head>
@@ -43,6 +43,7 @@
 
     <div class="controls">
         <input type="text" id="search" placeholder="Rechercher...">
+        
         <select id="sort">
             <option value="">Trier par...</option>
             <option value="nom">Nom (A-Z)</option>
@@ -53,6 +54,7 @@
             <option value="censure">Censure</option>
             <option value="etat">État</option>
         </select>
+        
         <button onclick="toggleTheme()" id="theme-btn">🌓 Mode Clair</button>
         <button onclick="randomAnime()">🎲 Aléatoire</button>
     </div>
@@ -68,46 +70,30 @@
             document.getElementById('theme-btn').innerText = isLight ? "🌓 Mode Sombre" : "🌓 Mode Clair";
         }
 
-        // Fonction pour lire les colonnes même avec des ";" dans les textes
-        function parseLine(line) {
-            let cells = [];
-            let cell = "";
-            let inQuotes = false;
-            for (let char of line) {
-                if (char === '"') inQuotes = !inQuotes;
-                else if (char === ';' && !inQuotes) {
-                    cells.push(cell.trim());
-                    cell = "";
-                } else cell += char;
-            }
-            cells.push(cell.trim());
-            return cells;
-        }
-
+        // --- CETTE PARTIE EST TON SCRIPT QUI MARCHE (LÉGÈREMENT ADAPTÉ POUR L'IMAGE) ---
         async function init() {
             try {
                 const response = await fetch('animes.csv');
                 const rawData = await response.text();
-                // On sépare les lignes et on enlève celles qui sont vides
-                const lines = rawData.split(/\r?\n/).filter(l => l.includes(';'));
+                const rows = rawData.split('\n').filter(r => r.trim() !== "");
                 
-                allAnimes = lines.slice(1).map(line => {
-                    const c = parseLine(line);
-                    // On vérifie que la ligne n'est pas une ligne de points-virgules vide
-                    if (!c[0] || c[0] === "" || c[0] === '""') return null;
+                allAnimes = rows.slice(1).map(line => {
+                    const c = line.split(';');
+                    // On vérifie que la ligne a assez de colonnes
+                    if (c.length < 8) return null;
                     
                     return {
-                        nom: c[0].replace(/^"|"$/g, ''),
-                        popularite: c[1].replace(/^"|"$/g, ''),
-                        score: c[2].replace(/^"|"$/g, ''),
-                        sortie: c[3].replace(/^"|"$/g, ''),
-                        episodes: c[4].replace(/^"|"$/g, ''),
-                        censure: c[5].replace(/^"|"$/g, ''),
-                        etat: c[6].replace(/^"|"$/g, ''),
-                        img: c[8] ? c[8].replace(/^"|"$/g, '') : "" // Colonne image_url
+                        nom: c[0].trim().replace(/"/g, ''),
+                        popularite: c[1].trim().replace(/"/g, ''),
+                        score: c[2].trim().replace(/"/g, ''),
+                        sortie: c[3].trim().replace(/"/g, ''),
+                        episodes: c[4].trim().replace(/"/g, ''),
+                        censure: c[5].trim().replace(/"/g, ''),
+                        etat: c[6].trim().replace(/"/g, ''),
+                        // L'image est en colonne 9 (index 8)
+                        img: c[8] ? c[8].trim().replace(/"/g, '') : "" 
                     };
                 }).filter(a => a !== null);
-
                 displayAnimes(allAnimes);
             } catch (err) { console.error(err); }
         }
@@ -120,7 +106,7 @@
                 card.className = 'card';
                 card.href = `video.html?name=${encodeURIComponent(a.nom)}`;
                 
-                // On prépare le lien image proprement
+                // On nettoie le nom de l'image pour être sûr qu'elle s'affiche
                 const imgSrc = "img/" + a.img;
 
                 card.innerHTML = `
@@ -139,6 +125,7 @@
             });
         }
 
+        // --- AJOUT DU SYSTÈME DE TRI ---
         document.getElementById('sort').addEventListener('change', (e) => {
             let sorted = [...allAnimes];
             const mode = e.target.value;
