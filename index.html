@@ -149,4 +149,23 @@
             else if(mode === "sortie") sorted.sort((a,b) => b.sortie.localeCompare(a.sortie));
             else if(mode === "episodes") sorted.sort((a,b) => (parseInt(b.episodes) || 0) - (parseInt(a.episodes) || 0)).reverse();
             else if(mode === "censure") sorted.sort((a,b) => a.censure.localeCompare(b.censure));
-            else if(mode === "etat") sorted.sort
+            else if(mode === "etat") sorted.sort((a,b) => a.etat.localeCompare(b.etat));
+
+            displayAnimes(sorted);
+        });
+
+        document.getElementById('search').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            displayAnimes(allAnimes.filter(a => a.nom.toLowerCase().includes(val)));
+        });
+
+        function randomAnime() {
+            if(allAnimes.length > 0) {
+                const a = allAnimes[Math.floor(Math.random()*allAnimes.length)];
+                window.location.href = `video.html?name=${encodeURIComponent(a.nom)}`;
+            }
+        }
+        init();
+    </script>
+</body>
+</html>
