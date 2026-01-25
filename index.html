@@ -11,7 +11,7 @@
         body.theme-xp { 
             background-color: #245edb;
             background-image: var(--bg-day); 
-            background-size: cover; background-attachment: fixed;
+            background-size: cover; background-attachment: fixed; background-position: center;
             --card-bg: #ece9d8; --text: #000;
         }
         .theme-xp .card { border: 3px solid #0054e3; border-radius: 8px 8px 0 0; box-shadow: 4px 4px 10px rgba(0,0,0,0.4); height: 500px; }
@@ -24,7 +24,7 @@
         body.theme-vista { 
             background-color: #000;
             background-image: var(--bg-day);
-            background-size: cover; background-attachment: fixed;
+            background-size: cover; background-attachment: fixed; background-position: center;
             --text: #fff;
         }
         .theme-vista .card { 
@@ -37,8 +37,195 @@
         }
 
         /* BASES DU SCRIPT */
-        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; transition: 0.3s; background-color: var(--bg); color: var(--text); }
+        body { font-family: 'Segoe UI', Tahoma, sans-serif; margin: 0; padding: 20px; transition: 0.3s; background-color: var(--bg); color: var(--text); min-height: 100vh; }
         body.light-mode { --bg: #EAEAEA; --card-bg: #FFFFFF; --text: #2d3436; --header-bg: rgba(234, 234, 234, 0.95); }
 
         .header-main { display: flex; align-items: center; gap: 20px; max-width: 1200px; margin: 0 auto 20px; background: var(--header-bg); padding: 15px; border-radius: 12px; }
-        .site-logo { width: 80px; height: 80px; object-fit: cover; border-radius:
+        .site-logo { width: 80px; height: 80px; object-fit: cover; border-radius: 10px; border: 2px solid var(--primary); }
+        
+        .controls { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; margin-bottom: 30px; position: sticky; top: 10px; z-index: 100; background: var(--header-bg); padding: 15px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.3); backdrop-filter: blur(10px); }
+        input, select, button { padding: 10px 15px; border-radius: 6px; border: 1px solid #333; background: #222; color: white; cursor: pointer; }
+        body.light-mode input, body.light-mode select { background: #fff; color: #333; border: 1px solid #ccc; }
+        
+        .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 25px; }
+        .card { text-decoration: none; color: inherit; display: flex; flex-direction: column; overflow: hidden; transition: 0.2s; background: var(--card-bg); border: 1px solid #333; border-radius: 12px; }
+        .card:hover { transform: translateY(-5px); }
+        .card img { width: 100%; height: 260px; object-fit: cover; background: #000; flex-shrink: 0; }
+        
+        .card-info { padding: 12px; font-size: 0.85em; flex-grow: 1; display: flex; flex-direction: column; }
+        .card-title { font-weight: bold; font-size: 1.05em; margin-bottom: 8px; color: var(--primary); height: 2.6em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+        
+        .info-line { display: flex; justify-content: space-between; margin-bottom: 4px; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .win-btn { font-family: monospace; letter-spacing: 2px; }
+
+        footer { margin-top: 50px; padding: 20px; text-align: center; color: #888; border-top: 1px solid #333; }
+        footer a { color: var(--primary); text-decoration: none; font-weight: bold; }
+    </style>
+</head>
+<body id="main-body">
+
+    <div class="header-main">
+        <img src="img/logo.jpg" alt="Logo" class="site-logo">
+        <div class="header-text">
+            <h1 style="margin:0; color:var(--primary)">Le Malicieux</h1>
+            <p style="margin:5px 0 0 0; opacity:0.8; font-style:italic;">Catalogue d'animes malicieux</p>
+        </div>
+    </div>
+
+    <div class="controls">
+        <input type="text" id="search" placeholder="Rechercher...">
+        
+        <select id="theme-select" onchange="applyTheme(this.value)">
+            <option value="default">Style Moderne</option>
+            <option value="theme-xp">Windows XP</option>
+            <option value="theme-vista">Windows Vista</option>
+        </select>
+
+        <select id="sort">
+            <option value="nom">Nom (A-Z)</option>
+            <option value="score">Score</option>
+            <option value="sortie">Année</option>
+            <option value="popularite">Popularité</option>
+        </select>
+        
+        <button onclick="toggleTheme()" id="theme-btn">🌓 Mode Clair</button>
+        <button onclick="randomAnime()">🎲 Aléatoire</button>
+    </div>
+
+    <div id="anime-container" class="grid"></div>
+
+    <footer>
+        <p>&copy; <span id="year"></span> Le Malicieux - Tous droits réservés</p>
+        <p>Rejoins-nous sur <a href="https://discord.gg/4DY3Zq4vW4" target="_blank">Discord</a></p>
+    </footer>
+
+    <script>
+        let allAnimes = [];
+        document.getElementById('year').innerText = new Date().getFullYear();
+
+        function applyTheme(theme) {
+            const body = document.getElementById('main-body');
+            body.classList.remove('theme-xp', 'theme-vista');
+            
+            if (theme !== 'default') {
+                body.classList.add(theme);
+                try {
+                    const totalImages = 25; 
+                    const d = new Date();
+                    const seed = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+                    const imageId = (seed % totalImages) + 1;
+                    body.style.setProperty('--bg-day', `url('img/fond${imageId}.jpg')`);
+                } catch (e) { console.error("Erreur d'image:", e); }
+            } else {
+                body.style.backgroundImage = 'none';
+            }
+            
+            if(allAnimes.length > 0) displayAnimes(allAnimes);
+        }
+
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            const isLight = document.body.classList.contains('light-mode');
+            document.getElementById('theme-btn').innerText = isLight ? "🌓 Mode Sombre" : "🌓 Mode Clair";
+        }
+
+        async function init() {
+            try {
+                const response = await fetch('animes.csv');
+                if (!response.ok) throw new Error("Fichier CSV introuvable");
+                const rawData = await response.text();
+                
+                const rows = rawData.split(/\r?\n/).filter(r => r.trim().length > 0);
+                
+                allAnimes = rows.slice(1).map(line => {
+                    const c = line.split(';');
+                    const clean = (s) => s ? s.trim().replace(/^"|"$/g, '') : "";
+                    const nom = clean(c[0]);
+                    
+                    if (nom && nom.length > 1) {
+                        let imgFile = clean(c[8]);
+                        if (!imgFile || !imgFile.toLowerCase().match(/\.(jpg|png|jpeg)$/)) {
+                            imgFile = clean(c[c.length - 1]);
+                        }
+                        return {
+                            nom: nom,
+                            popularite: clean(c[1]) || "?",
+                            score: clean(c[2]) || "0",
+                            sortie: clean(c[3]) || "?",
+                            episodes: clean(c[4]) || "?",
+                            censure: clean(c[5]) || "?",
+                            etat: clean(c[6]) || "?",
+                            img: imgFile
+                        };
+                    }
+                    return null;
+                }).filter(a => a !== null);
+
+                applyTheme('default');
+            } catch (err) { 
+                console.error("Erreur init:", err);
+                document.getElementById('anime-container').innerHTML = "<p style='color:red'>Erreur de chargement du catalogue.</p>";
+            }
+        }
+
+        function displayAnimes(list) {
+            const container = document.getElementById('anime-container');
+            if (!container) return;
+            container.innerHTML = "";
+            const body = document.getElementById('main-body');
+            const isRetro = body.classList.contains('theme-xp') || body.classList.contains('theme-vista');
+
+            list.forEach(a => {
+                const card = document.createElement('a');
+                card.className = 'card';
+                card.href = `video.html?name=${encodeURIComponent(a.nom)}`;
+                
+                const winHeader = isRetro ? `
+                    <div class="win-title">
+                        <span>${a.nom.substring(0,20)}...</span>
+                        <div class="win-btn">_ □ X</div>
+                    </div>
+                ` : "";
+
+                card.innerHTML = `
+                    ${winHeader}
+                    <img src="img/${a.img}" onerror="this.src='https://via.placeholder.com/220x280?text=Image+Introuvable'">
+                    <div class="card-info">
+                        <div class="card-title">${a.nom}</div>
+                        <div class="info-line"><span>Pop :</span> <span>${a.popularite}</span></div>
+                        <div class="info-line"><span>Score :</span> <span>⭐ ${a.score}/10</span></div>
+                        <div class="info-line"><span>Année :</span> <span>${a.sortie}</span></div>
+                        <div class="info-line"><span>Censure :</span> <span>${a.censure}</span></div>
+                        <div class="info-line"><span>État :</span> <span>${a.etat}</span></div>
+                    </div>
+                `;
+                container.appendChild(card);
+            });
+        }
+
+        document.getElementById('sort').addEventListener('change', (e) => {
+            let sorted = [...allAnimes];
+            const mode = e.target.value;
+            if(mode === "nom") sorted.sort((a,b) => a.nom.localeCompare(b.nom));
+            else if(mode === "score") sorted.sort((a,b) => parseFloat(b.score.replace(',','.')) - parseFloat(a.score.replace(',','.'))).reverse();
+            else if(mode === "sortie") sorted.sort((a,b) => b.sortie.localeCompare(a.sortie));
+            else if(mode === "popularite") sorted.sort((a,b) => (parseInt(a.popularite.replace('#','')) || 9999) - (parseInt(b.popularite.replace('#','')) || 9999));
+            displayAnimes(sorted);
+        });
+
+        document.getElementById('search').addEventListener('input', (e) => {
+            const val = e.target.value.toLowerCase();
+            displayAnimes(allAnimes.filter(a => a.nom.toLowerCase().includes(val)));
+        });
+
+        function randomAnime() {
+            if(allAnimes.length > 0) {
+                const a = allAnimes[Math.floor(Math.random()*allAnimes.length)];
+                window.location.href = `video.html?name=${encodeURIComponent(a.nom)}`;
+            }
+        }
+
+        init();
+    </script>
+</body>
+</html>
