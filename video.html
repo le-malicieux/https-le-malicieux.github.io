@@ -6,37 +6,44 @@
     <title>Le Malicieux - Visionnage</title>
     <style>
         :root { --primary: #ff4757; --bg: #0f0f0f; --card-bg: #1a1a1a; --text: #eee; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); color: var(--text); margin: 0; padding: 20px; line-height: 1.6; }
         
-        .container { max-width: 1000px; margin: 0 auto; }
+        .container { max-width: 1100px; margin: 0 auto; }
         .back-btn { display: inline-block; text-decoration: none; color: var(--primary); font-weight: bold; margin-bottom: 20px; border: 1px solid var(--primary); padding: 8px 15px; border-radius: 6px; transition: 0.3s; }
         .back-btn:hover { background: var(--primary); color: white; }
 
         .anime-header { display: flex; gap: 30px; flex-wrap: wrap; background: var(--card-bg); padding: 25px; border-radius: 15px; border: 1px solid #333; margin-bottom: 30px; }
-        .anime-header img { width: 280px; border-radius: 10px; border: 2px solid var(--primary); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .anime-header img { width: 280px; border-radius: 10px; border: 2px solid var(--primary); box-shadow: 0 10px 30px rgba(0,0,0,0.5); object-fit: cover; }
         
         .details { flex: 1; min-width: 300px; }
-        .details h1 { margin-top: 0; color: var(--primary); font-size: 2.2em; }
-        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 20px 0; }
-        .info-item { background: rgba(255,255,255,0.05); padding: 10px; border-radius: 6px; border-left: 3px solid var(--primary); }
-        .info-item strong { color: #888; display: block; font-size: 0.8em; text-transform: uppercase; }
-
-        .video-player { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 15px; overflow: hidden; border: 1px solid #333; }
+        .details h1 { margin: 0 0 15px 0; color: var(--primary); font-size: 2.2em; border-bottom: 2px solid var(--primary); display: inline-block; padding-bottom: 5px; }
         
-        .discord-section { text-align: center; margin-top: 40px; padding: 20px; background: rgba(114, 137, 218, 0.1); border-radius: 15px; border: 1px dashed #7289da; }
-        .discord-link { color: #7289da; text-decoration: none; font-weight: bold; font-size: 1.1em; }
+        /* Infos techniques en plus petit */
+        .info-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; margin-bottom: 20px; }
+        .info-item { background: rgba(255,255,255,0.03); padding: 8px; border-radius: 6px; border-left: 2px solid #555; font-size: 0.85em; }
+        .info-item strong { color: #888; display: block; font-size: 0.75em; text-transform: uppercase; margin-bottom: 2px; }
+
+        /* Bloc Description */
+        .description-box { background: rgba(0,0,0,0.2); padding: 20px; border-radius: 10px; border: 1px solid rgba(255,255,255,0.05); }
+        .description-box h3 { margin-top: 0; color: var(--primary); font-size: 1.1em; }
+        .description-text { color: #ccc; text-align: justify; }
+
+        .video-player { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 15px; overflow: hidden; border: 1px solid #333; margin-top: 30px; }
+        
+        footer { text-align: center; margin-top: 40px; padding: 20px; border-top: 1px solid #333; }
+        .discord-link { color: #7289da; text-decoration: none; font-weight: bold; }
     </style>
 </head>
 <body>
 
     <div class="container">
         <a href="index.html" class="back-btn">← Retour au catalogue</a>
-        <div id="video-content">Chargement de l'anime...</div>
         
-        <div class="discord-section">
-            <p>Un problème avec cette vidéo ?</p>
-            <a href="https://discord.gg/4DY3Zq4vW4" target="_blank" class="discord-link">Signaler sur notre Discord</a>
-        </div>
+        <div id="video-content">Chargement des données...</div>
+
+        <footer>
+            <p>Un souci ? <a href="https://discord.gg/4DY3Zq4vW4" target="_blank" class="discord-link">Signaler sur Discord</a></p>
+        </footer>
     </div>
 
     <script>
@@ -50,11 +57,11 @@
                 const rawData = await response.text();
                 const rows = rawData.split(/\r?\n/);
                 
-                // Recherche de l'anime correspondant dans le CSV
                 let anime = null;
                 rows.slice(1).forEach(line => {
                     const c = line.split(';');
                     const clean = (s) => s ? s.trim().replace(/^"|"$/g, '') : "";
+                    
                     if (clean(c[0]) === animeName) {
                         anime = {
                             nom: clean(c[0]),
@@ -64,6 +71,7 @@
                             episodes: clean(c[4]) || "?",
                             censure: clean(c[5]) || "?",
                             etat: clean(c[6]) || "?",
+                            description: clean(c[7]) || "Aucune description disponible pour le moment.",
                             img: clean(c[8]) || clean(c[c.length - 1])
                         };
                     }
@@ -72,6 +80,8 @@
                 if (anime) {
                     document.title = "Le Malicieux - " + anime.nom;
                     displayAnime(anime);
+                } else {
+                    document.getElementById('video-content').innerHTML = "Anime non trouvé.";
                 }
             } catch (err) { console.error(err); }
         }
@@ -83,20 +93,26 @@
                     <img src="img/${a.img}" onerror="this.src='https://via.placeholder.com/280x400'">
                     <div class="details">
                         <h1>${a.nom}</h1>
+                        
                         <div class="info-grid">
                             <div class="info-item"><strong>Popularité</strong>${a.popularite}</div>
                             <div class="info-item"><strong>Score</strong>⭐ ${a.score}/10</div>
-                            <div class="info-item"><strong>Année</strong>${a.sortie}</div>
+                            <div class="info-item"><strong>Sortie</strong>${a.sortie}</div>
                             <div class="info-item"><strong>Épisodes</strong>${a.episodes}</div>
                             <div class="info-item"><strong>Censure</strong>${a.censure}</div>
                             <div class="info-item"><strong>État</strong>${a.etat}</div>
+                        </div>
+
+                        <div class="description-box">
+                            <h3>Synopsis / Description</h3>
+                            <p class="description-text">${a.description}</p>
                         </div>
                     </div>
                 </div>
                 
                 <div class="video-player">
-                    <div style="display:flex; height:100%; align-items:center; justify-content:center; color:#555;">
-                        Lecteur Vidéo (Espace réservé)
+                    <div style="display:flex; height:100%; align-items:center; justify-content:center; color:#444; background: radial-gradient(circle, #111 0%, #000 100%);">
+                        <p>Lecteur Vidéo Prêt - Chargez votre flux ici</p>
                     </div>
                 </div>
             `;
