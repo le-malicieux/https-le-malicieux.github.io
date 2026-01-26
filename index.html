@@ -18,7 +18,7 @@
             color: var(--text); 
             margin: 0; 
             padding: 20px; 
-            transition: background-image 0.8s ease-in-out; /* Transition douce pour le fond */
+            transition: background-image 0.8s ease-in-out; 
         }
         
         .header-main { display: flex; align-items: center; gap: 20px; max-width: 1200px; margin: 0 auto 20px auto; width: 100%; justify-content: space-between; }
@@ -87,24 +87,32 @@
         let allAnimes = [];
         document.getElementById('year').innerText = new Date().getFullYear();
 
-        // FONCTION AUTOMATIQUE SANS LIMITE
+        // NOUVELLE LOGIQUE : Détection automatique et Aléatoire total
         async function setRandomBackground() {
+            const extensions = ['jpg', 'png', 'jpeg', 'webp'];
             let count = 0;
-            let maxCheck = 100; // Il va tester jusqu'à 100 images maximum
-            
-            // Cette boucle compte combien d'images "fondX.jpg" existent réellement dans ton dossier img
-            for (let i = 1; i <= maxCheck; i++) {
-                try {
-                    const response = await fetch(`img/fond${i}.jpg`, { method: 'HEAD' });
-                    if (response.ok) count++;
-                    else break; // S'il ne trouve pas fond5.jpg, il s'arrête à 4
-                } catch (e) { break; }
+            let foundFiles = [];
+
+            // On vérifie les fichiers fond1, fond2... jusqu'à ce qu'on ne trouve plus rien
+            for (let i = 1; i <= 100; i++) {
+                let foundAny = false;
+                for (let ext of extensions) {
+                    try {
+                        const response = await fetch(`img/fond${i}.${ext}`, { method: 'HEAD' });
+                        if (response.ok) {
+                            foundFiles.push(`fond${i}.${ext}`);
+                            foundAny = true;
+                            break; 
+                        }
+                    } catch (e) {}
+                }
+                if (!foundAny) break; 
             }
 
-            // S'il a trouvé des images, il en choisit une au hasard
-            if (count > 0) {
-                const imgNum = Math.floor(Math.random() * count) + 1;
-                document.getElementById('main-body').style.setProperty('--bg-day', `url('img/fond${imgNum}.jpg')`);
+            // On choisit une image au hasard dans la liste des fichiers trouvés
+            if (foundFiles.length > 0) {
+                const randomImg = foundFiles[Math.floor(Math.random() * foundFiles.length)];
+                document.getElementById('main-body').style.setProperty('--bg-day', `url('img/${randomImg}')`);
             }
         }
 
@@ -115,7 +123,7 @@
         }
 
         async function init() {
-            setRandomBackground(); // Appelé au démarrage
+            setRandomBackground(); // Tirage aléatoire au chargement
             try {
                 const response = await fetch('animes.csv');
                 const rawData = await response.text();
