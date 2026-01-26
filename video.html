@@ -25,7 +25,6 @@
 
         .video-player { width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 15px; overflow: hidden; border: 1px solid #333; margin-bottom: 30px; }
 
-        /* Commentaires Gris */
         .comment-section { background: #999; padding: 20px; border-radius: 8px; color: white; margin-top: 20px; }
         .comment-header { background: #111; padding: 10px; text-align: center; font-weight: bold; border-radius: 5px; margin-bottom: 15px; }
         .login-box { text-align: center; margin-bottom: 15px; }
@@ -62,7 +61,6 @@
         import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, where, orderBy, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
-        // Ta nouvelle config v2
         const firebaseConfig = {
             apiKey: "AIzaSyCD70a-QR2nJnHBnA-FUoIGHZ7Z3VByPMk",
             authDomain: "le-malicieux-v2.firebaseapp.com",
@@ -96,14 +94,16 @@
         document.getElementById('btn-post').onclick = async () => {
             const text = document.getElementById('comment-input').value;
             if (!text.trim() || !animeName) return;
-            await addDoc(collection(db, "commentaires"), {
-                anime: animeName,
-                text: text,
-                userName: currentUser.displayName,
-                userPhoto: currentUser.photoURL,
-                date: serverTimestamp()
-            });
-            document.getElementById('comment-input').value = "";
+            try {
+                await addDoc(collection(db, "commentaires"), {
+                    anime: animeName,
+                    text: text,
+                    userName: currentUser.displayName,
+                    userPhoto: currentUser.photoURL,
+                    date: serverTimestamp()
+                });
+                document.getElementById('comment-input').value = "";
+            } catch (e) { console.error("Erreur d'envoi:", e); }
         };
 
         if (animeName) {
@@ -111,15 +111,20 @@
             onSnapshot(q, (snapshot) => {
                 const container = document.getElementById('comments-display');
                 container.innerHTML = "";
+                if (snapshot.empty) {
+                    container.innerHTML = "<p style='text-align:center;color:#ddd;'>Aucun commentaire pour le moment.</p>";
+                    return;
+                }
                 snapshot.forEach((doc) => {
                     const d = doc.data();
-                    const date = d.date ? new Date(d.date.seconds * 1000).toLocaleDateString() : "Instant";
+                    const date = d.date ? new Date(d.date.seconds * 1000).toLocaleDateString() : "À l'instant";
                     container.innerHTML += `
                         <div class="comment-item">
                             <img src="${d.userPhoto}" class="user-avatar" onerror="this.src='https://via.placeholder.com/45'">
                             <div>
-                                <span style="font-weight:bold">${d.userName}</span> <small style="color:#ccc">Le ${date}</small>
-                                <p style="margin:5px 0">${d.text}</p>
+                                <span style="font-weight:bold; color:#fff;">${d.userName}</span> 
+                                <small style="color:#ccc; margin-left:10px;">le ${date}</small>
+                                <p style="margin:5px 0; color:#eee; line-height:1.4;">${d.text}</p>
                             </div>
                         </div>`;
                 });
@@ -130,8 +135,8 @@
             if (!animeName) return;
             try {
                 const response = await fetch('animes.csv');
-                const rawData = await response.text();
-                const rows = rawData.split(/\r?\n/);
+                const data = await response.text();
+                const rows = data.split(/\r?\n/);
                 let anime = null;
                 rows.slice(1).forEach(line => {
                     const c = line.split(';');
